@@ -19,7 +19,7 @@ const validationSchema = Yup.object().shape({
 });
 
 const Register = () => {
-
+  
     const dispatch = useDispatch();
 
   const [errorMessage, setErrorMessage] = useState(null);
@@ -49,6 +49,8 @@ console.log(values)
 };    
 console.log("hare krishna ");
 console.log("error message",errorMessage)
+console.log(`${Api}/api/centers`)
+
 
   return (
     <ScrollView contentContainerStyle={styles.scrollView}>

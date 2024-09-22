@@ -3,6 +3,8 @@ import * as types from "./actionTypes"
 import { Api } from "../../Api/Api"
 import axios from "axios"
 
+
+
 export const getBasedOnLocation =()=> (dispatch)=>{
     dispatch({type:types.GET_LOCATION_REQUEST})
 
@@ -43,4 +45,4 @@ return  axios.get(`${Api}/api/bookings`, )
   .catch(err=>{
   return  dispatch({type:types.GET_USER_BOOK_SLOT_FAILURE, payload:err})
   })
-}
+} 

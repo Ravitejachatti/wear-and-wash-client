@@ -6,9 +6,10 @@ import { theme } from '../theme';
 import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import { postLogin } from '../Redux/Auth/action';
+import { getUserBookingSlot } from '../Redux/App/action';
 
 import { addData } from '../Storage/addData';
-
+import { getData } from '../Storage/getData';
 
 const validationSchema = Yup.object().shape({
   email: Yup.string().email('Invalid email').required('Email is required'),
@@ -17,36 +18,57 @@ const validationSchema = Yup.object().shape({
 
 const Login = () => {
   const [errorMessage, setErrorMessage] = useState('');
-  
+  const [bookingCount, setBookingCount] = useState(0);
+  const [userId, setUserId] = useState(null);
+
   const navigation = useNavigation();
   const dispatch = useDispatch();
-  const handleSubmit = (values) => {
-    console.log(values)
-    dispatch(postLogin(values))
-    .then(async res=>{
-      console.log("response",res);
-      if(res?.payload?.response?.data?.message){
-        setErrorMessage(res?.payload?.response?.data?.message)
-      }
-      if(res?.payload?.message === "login success"){
 
-        try {
-          await addData("userLocation", res?.payload?.location);
-          await addData("userId", res?.payload?.id)
-          await addData("email", res?.payload?.email)
-          await addData("phone", res?.payload?.phone)
-          await addData("name", res?.payload?.name)
-          await addData("token", res?.payload?.token)
-          navigation.navigate("Main")
-        } catch (error) {
-            console.log('error', error)
+  const handleSubmit = (values) => {
+    console.log(values);
+    dispatch(postLogin(values))
+      .then(async (res) => {
+        console.log('response', res);
+        if (res?.payload?.response?.data?.message) {
+          setErrorMessage(res?.payload?.response?.data?.message);
         }
-      }
-      
-    })
-    .catch(err=>{
-      console.log(err)
-    })
+        if (res?.payload?.message === 'login success') {
+          try {
+            await addData('userLocation', res?.payload?.location);
+            await addData('userId', res?.payload?.id);
+            await addData('email', res?.payload?.email);
+            await addData('phone', res?.payload?.phone);
+            await addData('name', res?.payload?.name);
+            await addData('token', res?.payload?.token);
+
+            dispatch(getUserBookingSlot())
+              .then(async (res) => {
+                const userIdFromStorage = await getData('userId');
+                setUserId(JSON.parse(userIdFromStorage));
+
+                // Assuming `res.data` contains the bookings array
+                const bookingCount = res.data ? res.data.length : 0; // Get the count of bookings
+                console.log(bookingCount);
+                setBookingCount(bookingCount); // Update the booking count state
+
+                // Navigate based on bookingCount
+                if (bookingCount === 0) {
+                  navigation.replace('Home'); // Navigate to Location page
+                } else if (bookingCount === 1) {
+                  navigation.replace('Home'); // Navigate to Home page
+                }
+              })
+              .catch((err) => {
+                console.log(err);
+              });
+          } catch (error) {
+            console.log('error', error);
+          }
+        }
+      })
+      .catch((err) => {
+        console.log(err);
+      });
   };
 
   return (
@@ -92,10 +114,10 @@ const Login = () => {
           </TouchableOpacity> */}
 
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerLink}>Don't have an account? <Text style={{color:theme.color.primary}}>SignUp</Text></Text>
+            <Text style={styles.registerLink}>
+              Don't have an account? <Text style={{ color: theme.color.primary }}>SignUp</Text>
+            </Text>
           </TouchableOpacity>
-
-          
         </View>
       )}
     </Formik>
@@ -159,7 +181,7 @@ const styles = StyleSheet.create({
   },
   registerLink: {
     textAlign: 'center',
-    color: "gray",
+    color: 'gray',
     marginTop: 20,
     fontSize: 16,
   },

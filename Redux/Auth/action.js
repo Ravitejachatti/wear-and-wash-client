@@ -6,6 +6,7 @@ import axios from "axios";
 
 export const postRegister = (payload) => (dispatch) => {
      dispatch({ type: types.USER_REGISTER_REQUEST });
+     
      return axios
        .post(`${Api}/api/user/register`, payload)
        .then((res) => {
