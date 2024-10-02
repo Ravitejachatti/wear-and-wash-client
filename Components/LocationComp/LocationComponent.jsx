@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from "react";
+import { useFocusEffect } from '@react-navigation/native';
+import { countUserFutureBookings } from '../../utils/bookingUtils';
 import RNPickerSelect from "react-native-picker-select";
-import { View, StyleSheet, Text, TextInput, FlatList, Platform, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, StyleSheet, Text, TextInput, FlatList, Platform, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
-import { getBasedOnLocation } from "../../Redux/App/action";
+import { getBasedOnLocation, getUserBookingSlot } from "../../Redux/App/action";
 import { useNavigation } from "@react-navigation/native";
 import { getData } from "../../Storage/getData";
 import { addData } from "../../Storage/addData";
 import { theme } from "../../theme";
 import DateTimePicker from '@react-native-community/datetimepicker';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';  // Importing icons
+import AnimatedPaymentComp from "../PaymentComp/AnimatedPaymentComp";
+import { getUserBookingsForCurrentMonth } from "../../utils/futureBookingUtils";
+import { fetchCurrentDate } from "../../utils/getCurrentTime";
 
 const LocationComponent = () => {
   const navigation = useNavigation();
@@ -20,34 +26,138 @@ const LocationComponent = () => {
   const [date, setDate] = useState(new Date());
   const [show, setShow] = useState(false);
   const [formattedDate, setFormattedDate] = useState('');
+  const [userId, setUserId] = useState(null);
+  const [futureBookingsCount, setFutureBookingsCount] = useState(0); // To track future bookings
+  const [showPayment, setShowPayment] = useState(false);
+  const [currentMonthBooking, setCurrentMonthBooking] = useState(0);
+  const [availableSlots, setAvailableSlots] = useState([]);
+  const [minimumDate, setMinimumDate] = useState(null);
+  const [maximumDate, setMaximumDate] = useState(null);
+
+
+  const timeSlots = [
+    { label: "09:00 - 09:30", value: "09:00-09:30" },
+    { label: "09:30 - 10:00", value: "09:30-10:00" },
+    { label: "10:00 - 10:30", value: "10:00-10:30" },
+    { label: "10:30 - 11:00", value: "10:30-11:00" },
+    { label: "11:00 - 11:30", value: "11:00-11:30" },
+    { label: "11:30 - 12:00", value: "11:30-12:00" },
+    { label: "12:00 - 12:30", value: "12:00-12:30" },
+    { label: "12:30 - 13:00", value: "12:30-13:00" },
+    { label: "13:00 - 13:30", value: "13:00-13:30" },
+    { label: "13:30 - 14:00", value: "13:30-14:00" },
+    { label: "14:00 - 14:30", value: "14:00-14:30" },
+    { label: "14:30 - 15:00", value: "14:30-15:00" },
+    { label: "15:00 - 15:30", value: "15:00-15:30" },
+    { label: "15:30 - 16:00", value: "15:30-16:00" },
+    { label: "16:00 - 16:30", value: "16:00-16:30" },
+    { label: "16:30 - 17:00", value: "16:30-17:00" },
+    { label: "17:00 - 17:30", value: "17:00-17:30" },
+    { label: "17:30 - 18:00", value: "17:30-18:00" },
+    { label: "18:00 - 18:30", value: "18:30-19:00" },
+    { label: "18:30 - 19:00", value: "19:00-19:30" }
+  ];
+
+
+  const getCurrentTime = () => {
+    const now = new Date();
+    return now.getHours() + ":" + now.getMinutes();
+  };
+
+
+
+  const isSlotAvailable = (slot) => {
+    const [startTime] = slot.value.split("-");
+    const [currentHour, currentMinute] = getCurrentTime().split(":");
+
+    // Compare times to see if the slot is available
+    const [slotHour, slotMinute] = startTime.split(":");
+    return (
+      parseInt(slotHour, 10) > parseInt(currentHour, 10) ||
+      (parseInt(slotHour, 10) === parseInt(currentHour, 10) &&
+        parseInt(slotMinute, 10) > parseInt(currentMinute, 10))
+    );
+  };
 
   const store = useSelector((state) => state.app.centers);
+  const filterLocation = userLocation && Array.isArray(store)
+    ? store.filter((item) => item.name.toLowerCase() === userLocation.toLowerCase())
+    : [];
+  const machines = filterLocation.length > 0 ? filterLocation[0].machineId : [];
+  
+  
 
+  // Fetch user location, user ID, and future bookings
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
         dispatch(getBasedOnLocation());
         const location = await getData("userLocation");
-        console.log("Retrieved location from AsyncStorage:", location);
+        const userId = await getData("userId");
+        setUserId(JSON.parse(userId));
+
         if (location) {
           setUserLocation(JSON.parse(location));
         }
+
+        // Fetch future bookings
+        const response = await dispatch(getUserBookingSlot()); // Ensure getUserBookingSlot is an async action
+        const bookings = response.payload;
+
+        // Calculate future bookings for the current user
+        const futureBookings = countUserFutureBookings(bookings,userId);
+        setFutureBookingsCount(futureBookings.length); // Update the future bookings count
+
+        console.log("currentMonthbookingBefore ",currentMonthBooking)
+
+        const CurrentMonth = getUserBookingsForCurrentMonth(bookings,userId)
+        console.log("currentMonth original ",CurrentMonth.length)
+        //const currentMonthBooking = getUserBookingsForCurrentMonth(bookings,JSON.parse(userId))
+        setCurrentMonthBooking(CurrentMonth.length)
+        console.log("current Month bookings ",currentMonthBooking)
+
+        console.log("currentMonthbookingAfter ",currentMonthBooking)
+        setLoading(true);
+
+        if (futureBookings.length > 0) {
+          Alert.alert('You have upcoming bookings!'); // Alert the user if they have any future bookings 
+        }
       } catch (error) {
-        console.error("Error fetching location data or AsyncStorage:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
+    const filteredSlots = timeSlots.filter(isSlotAvailable);
+    setAvailableSlots(filteredSlots);
+
+
+const currentDate = async () =>{
+     let currentDate1 = await fetchCurrentDate()
+   currentDate1 = new Date(currentDate1);
+
+// Extract year and month
+const year = currentDate1.getFullYear();
+const month = currentDate1.getMonth(); // Note: 0-indexed
+
+// Set minimum date to the current date
+const minimumDate = currentDate1;
+setMinimumDate(minimumDate)
+
+// Set maximum date to the last day of the current month
+const maximumDate = new Date(year, month + 1, 0); // Last day of the month
+setMaximumDate(maximumDate)
+
+console.log("Minimum Date:", minimumDate);  // Output: Current date
+console.log("Maximum Date:", maximumDate);  // Output: Last day of September 2024
+  
+}
+    
 
     fetchData();
-  }, [dispatch]);
-
-  const filterLocation = userLocation && Array.isArray(store)
-    ? store.filter((item) => item.name.toLowerCase() === userLocation.toLowerCase())
-    : [];
-
-  const machines = filterLocation.length > 0 ? filterLocation[0].machineId : [];
+    currentDate();
+  }, [dispatch,currentMonthBooking]);
 
   const handleCenterChange = (value) => {
     setSelectedTimeSlot(value);
@@ -60,26 +170,22 @@ const LocationComponent = () => {
 
   const filterMachinesByTimeSlot = (machine) => {
     if (!selectedTimeSlot || !formattedDate) return true;
-  
+
     const [selectedStartTime, selectedEndTime] = selectedTimeSlot.split("-");
     const selectedDate = date.toISOString().split('T')[0];
-    console.log("checking date", selectedDate)
-  
+
     const isAvailable = machine.bookedSlots.every((slot) => {
       const slotDate = new Date(slot.date).toISOString().split('T')[0];
       const [slotStartTime, slotEndTime] = [slot.timeRange.startTime, slot.timeRange.endTime];
-  
-      console.log("Checking slot:", { selectedDate, slotDate, selectedStartTime, selectedEndTime, slotStartTime, slotEndTime });
-  
+
       if (slotDate === selectedDate) {
         return (selectedEndTime <= slotStartTime) || (selectedStartTime >= slotEndTime);
       }
       return true;
     });
-  
+
     return isAvailable;
   };
-  
 
   const renderMachineItem = ({ item }) => (
     <TouchableOpacity
@@ -87,27 +193,26 @@ const LocationComponent = () => {
       style={[
         styles.machineItem,
         {
-          backgroundColor: item._id === selectedMachineId?._id ? "gray" : (item.status ? "green" : "red"),
+          backgroundColor: item._id === selectedMachineId?._id ? "gray" : (item.status ? "#1E90FF" : "red"), // Blue color when available
         },
       ]}
     >
+      {/* Washing machine icon */}
+      <FontAwesome5 name="soap" size={30} color="#fff" />
       <Text style={styles.machineName}>{item.name}</Text>
-      <Text>{item.status ? "Available" : "Unavailable"}</Text>
+      <Text style={styles.machineStatus}>{item.status ? "Available" : "Unavailable"}</Text>
     </TouchableOpacity>
   );
 
   if (loading) {
-    return <ActivityIndicator size="large" color={theme.color.primary} />;
+    return <ActivityIndicator size="large" color="#1E90FF" />; // Blue color for loading spinner
   }
 
   const id = filterLocation[0]?._id;
 
   const handleProceed = async () => {
-    if (selectedMachineId && selectedTimeSlot) {
-      console.log("clicked", selectedMachineId);
+    if (selectedMachineId && selectedTimeSlot && formattedDate) {
       const selectedDate = formattedDate || new Date().toISOString().split('T')[0];
-
-      console.log("selectedDate", selectedDate);
 
       try {
         await addData("machineId", selectedMachineId?._id);
@@ -115,20 +220,19 @@ const LocationComponent = () => {
         await addData("date", selectedDate);
         await addData("timeSlot", selectedTimeSlot);
         await addData("locationId", id);
-        console.log("Data stored successfully!");
 
-        setTimeout(() => {
-          navigation.navigate("Payment");
-        }, 100);
+        alert("Data stored successfully!"); 
+        //  <AnimatedPaymentComp/>
+        setShowPayment(true);
+
       } catch (error) {
         console.error("Error storing data:", error);
+        alert("Error storing data. Please try again.");
       }
     } else {
-      console.log("Please select both a machine and a time slot.");
+      alert("Please select both a machine and a time slot.");
     }
   };
-
-  console.log("machines", machines);
 
   const onChange = (event, selectedDate) => {
     const currentDate = selectedDate || date;
@@ -143,8 +247,6 @@ const LocationComponent = () => {
     setShow(true);
   };
 
-  console.log("date", date);
-
   return (
     <View style={styles.main}>
       <View style={styles.dropDownContainer}>
@@ -155,24 +257,7 @@ const LocationComponent = () => {
               label: "Select the Slot",
               value: null,
             }}
-            items={[
-              { label: "09:00 - 09:30", value: "09:00-09:30" },
-              { label: "09:30 - 10:00", value: "09:30-10:00" },
-              { label: "10:00 - 10:30", value: "10:00-10:30" },
-              { label: "10:30 - 11:00", value: "10:30-11:00" },
-              { label: "11:00 - 11:30", value: "11:00-11:30" },
-              { label: "11:30 - 12:00", value: "11:30-12:00" },
-              { label: "12:00 - 12:30", value: "12:00-12:30" },
-              { label: "12:30 - 13:00", value: "12:30-13:00" },
-              { label: "13:00 - 13:30", value: "13:00-13:30" },
-              { label: "13:30 - 14:00", value: "13:30-14:00" },
-              { label: "14:00 - 14:30", value: "14:00-14:30" },
-              { label: "14:30 - 15:00", value: "14:30-15:00" },
-              { label: "15:00 - 15:30", value: "15:00-15:30" },
-              { label: "15:30 - 16:00", value: "15:30-16:00" },
-              { label: "16:00 - 16:30", value: "16:00-16:30" },
-              { label: "16:30 - 17:00", value: "16:30-17:00" },
-            ]}
+            items={availableSlots}
             style={{
               inputIOS: styles.input,
               inputAndroid: styles.input,
@@ -182,39 +267,54 @@ const LocationComponent = () => {
           />
         </View>
 
-        <View style={styles.container}>
+        <View style={styles.dateInputWrapper}>
+          <TouchableOpacity style={styles.iconContainer} onPress={showDatepicker}>
+            <FontAwesome5 name="calendar-alt" size={24} color="gray" />
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             placeholder="Select Date"
             value={formattedDate}
-            onFocus={showDatepicker} 
+            onFocus={showDatepicker}
+            onChangeText={setFormattedDate} // Allow manual entry of date
           />
-
-          {show && (
+          {show && minimumDate && maximumDate && (
             <DateTimePicker
               value={date}
               mode="date"
               display="default"
               onChange={onChange}
+              minimumDate={minimumDate}  // Set the minimum date to current date
+              maximumDate={maximumDate}  // Set the maximum date to the last day of the current month
             />
           )}
         </View>
       </View>
 
       <View style={styles.listContainer}>
-  <FlatList
-    data={machines.filter(filterMachinesByTimeSlot)}
-    renderItem={renderMachineItem}
-    keyExtractor={(item) => item._id}
-    numColumns={3}  
-    showsHorizontalScrollIndicator={false}  
-  />
-</View>
+        <FlatList
+          data={machines.filter(filterMachinesByTimeSlot)}
+          renderItem={renderMachineItem}
+          keyExtractor={(item) => item._id}
+          numColumns={3}
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
 
-
-      <TouchableOpacity style={styles.proceedBtn} onPress={handleProceed}>
-        <Text style={styles.proceedBtnText}>Proceed</Text>
+      <TouchableOpacity
+        style={[styles.proceedBtn, futureBookingsCount > 0 ||  currentMonthBooking >= 4 ? styles.disabledBtn : null]} // Disable styling
+        onPress={handleProceed}
+        disabled={futureBookingsCount > 0  || currentMonthBooking >= 4 } // Disable button if user has future bookings
+      >
+        <Text style={styles.proceedBtnText}>
+          {futureBookingsCount > 0 || currentMonthBooking >= 4 ? "Booking Unavailable" : "Proceed"}
+        </Text>
       </TouchableOpacity>
+      {/* Animated PaymentComp */}
+      <AnimatedPaymentComp
+        isVisible={showPayment}
+        onClose={() => setShowPayment(false)} // Close the payment screen
+      />
     </View>
   );
 };
@@ -222,17 +322,21 @@ const LocationComponent = () => {
 const styles = StyleSheet.create({
   dropDownContainer: {
     marginBottom: 30,
+    marginLeft: 20,
+    marginRight: 20,
+    marginTop: 20,
   },
   inputWrapper: {
     borderWidth: 0.5,
-    borderRadius: 23,
+    borderRadius: 10,
     marginBottom: 30,
   },
   input: {
     paddingVertical: 15,
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     color: "black",
-    fontSize: 23,
+    fontSize: 15,
+    borderColor: "black",
   },
   placeholder: {
     color: "black",
@@ -242,57 +346,68 @@ const styles = StyleSheet.create({
     right: 10,
   },
   listContainer: {
-    flexDirection: 'row',  
-    flexWrap: 'wrap',  
-    width: '100%',  
+    flexDirection: "row",
+    flexWrap: "wrap",  // Allows items to wrap to the next line
+    justifyContent: "space-around",  // Distributes the items evenly in the row
+    width: "100%",
+    marginVertical: 5, // Adds vertical spacing between rows
+  },
+  iconContainer: {
+    paddingHorizontal: 10,
+  },
+  dateInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 0.5,
+    borderRadius: 10,
+    padding: 5,
+  },
+  listContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-around",
+    width: "100%",
+    marginVertical: 5,
   },
   machineItem: {
-    width: 120,
-    height: 160,
+    width: 100,
+    height: 120,
     borderRadius: 13,
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 5, 
-    marginBottom: 10,
+    margin:5,
+    marginLeft:11  ,
+    backgroundColor: '#1E90FF',  // Default blue for available machines
   },
   machineName: {
     color: "white",
-    fontSize: 16,
+    fontSize: 14,
+    
   },
-  btn: {
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    width: "60%",
-    margin: "auto",
-    backgroundColor: theme.color.secondary,
-    marginVertical: 20,
+  machineStatus: {
+    color: "white",
+    fontSize: 12,
   },
-  container: {
-    padding: 20,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    borderRadius: 5,
-    fontSize: 16,
-    color: '#333',
-  },
-  proceedBtn:{
-    backgroundColor: theme.color.secondary,
+  proceedBtn: {
+    backgroundColor: "#1E90FF",  // Blue button when active
     padding: 15,
     borderRadius: 10,
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
     elevation: 5,
-  }
+  },
+  disabledBtn: {
+    backgroundColor: "#ccc", // Gray color for disabled button
+  },
+  proceedBtnText: {
+    fontSize: 18,
+    color: "#fff",
+    fontWeight: "bold",
+  },
 });
-
-
 
 export default LocationComponent;

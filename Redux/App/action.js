@@ -20,7 +20,7 @@ export const getBasedOnLocation =()=> (dispatch)=>{
 
 
 export const bookingSlot =(payload)=> (dispatch)=>{
-  console.log("action payload ", payload)
+  // console.log("action payload ", payload)
   dispatch({type:types.POST_BOOK_SLOT_REQUEST})
 
 return  axios.post(`${Api}/api/bookings/createBookingAndUpdateSlot`, payload)
@@ -43,6 +43,6 @@ return  axios.get(`${Api}/api/bookings`, )
    return  dispatch({type:types.GET_USER_BOOK_SLOT_SUCCESS, payload:res.data.data})
   })
   .catch(err=>{
-  return  dispatch({type:types.GET_USER_BOOK_SLOT_FAILURE, payload:err})
+  return  dispatch({type:types.GET_USER_BOOK_SLOT_FAILURE, payload:err}) 
   })
 } 

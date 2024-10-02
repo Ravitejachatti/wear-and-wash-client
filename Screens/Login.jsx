@@ -7,9 +7,11 @@ import { useNavigation } from '@react-navigation/native';
 import { useDispatch } from 'react-redux';
 import { postLogin } from '../Redux/Auth/action';
 import { getUserBookingSlot } from '../Redux/App/action';
+import { getFutureUserBookings } from '../utils/futureBookingUtils';
 
 import { addData } from '../Storage/addData';
 import { getData } from '../Storage/getData';
+import { countUserFutureBookings } from '../utils/bookingUtils';
 
 const validationSchema = Yup.object().shape({
   email: Yup.string().email('Invalid email').required('Email is required'),
@@ -18,56 +20,64 @@ const validationSchema = Yup.object().shape({
 
 const Login = () => {
   const [errorMessage, setErrorMessage] = useState('');
-  const [bookingCount, setBookingCount] = useState(0);
-  const [userId, setUserId] = useState(null);
-
+  const [futureBookings,setFutureBookings] = useState(0)
   const navigation = useNavigation();
   const dispatch = useDispatch();
+ 
+  
+
 
   const handleSubmit = (values) => {
-    console.log(values);
     dispatch(postLogin(values))
       .then(async (res) => {
-        console.log('response', res);
         if (res?.payload?.response?.data?.message) {
           setErrorMessage(res?.payload?.response?.data?.message);
         }
+
         if (res?.payload?.message === 'login success') {
           try {
+            // Store user information locally
             await addData('userLocation', res?.payload?.location);
             await addData('userId', res?.payload?.id);
             await addData('email', res?.payload?.email);
             await addData('phone', res?.payload?.phone);
             await addData('name', res?.payload?.name);
             await addData('token', res?.payload?.token);
+            const userIdFromStorage = await getData('userId');
+            const userId = JSON.parse(userIdFromStorage);
+            
+            // Fetch user bookings
+            dispatch(getUserBookingSlot( ))
+            .then(async (res) => {
+              const bookings = res.payload;
+              // console.log("All Bookings from API:", bookings);
+      
+              // Use the utility function to filter future bookings
+              const Bookings = await countUserFutureBookings(bookings,userId)
+              // console.log("Future Bookings for the User:", futureBookings);
+              setFutureBookings(Bookings); 
+              console.log("login")
 
-            dispatch(getUserBookingSlot())
-              .then(async (res) => {
-                const userIdFromStorage = await getData('userId');
-                setUserId(JSON.parse(userIdFromStorage));
-
-                // Assuming `res.data` contains the bookings array
-                const bookingCount = res.data ? res.data.length : 0; // Get the count of bookings
-                console.log(bookingCount);
-                setBookingCount(bookingCount); // Update the booking count state
-
-                // Navigate based on bookingCount
-                if (bookingCount === 0) {
-                  navigation.replace('Home'); // Navigate to Location page
-                } else if (bookingCount === 1) {
-                  navigation.replace('Home'); // Navigate to Home page
-                }
+ 
+                 // Conditional navigation based on future bookings
+            if (Bookings.length === 0) {
+              console.log("Navigating to Location Page");
+              navigation.navigate('Main', { screen: 'Location' });  // Navigate to Location page
+            } else if (Bookings.length >= 1) {
+              console.log("Navigating to Home Page");
+              navigation.navigate('Main', { screen: 'Home' }); 
+            }
               })
               .catch((err) => {
-                console.log(err);
+                console.log("Error fetching bookings:", err);
               });
           } catch (error) {
-            console.log('error', error);
+            console.log('Error storing user data:', error);
           }
         }
       })
       .catch((err) => {
-        console.log(err);
+        console.log("Login error:", err);
       });
   };
 
@@ -108,10 +118,6 @@ const Login = () => {
           <TouchableOpacity onPress={handleSubmit} style={styles.loginButton}>
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
-
-          {/* <TouchableOpacity onPress={handleSubmit} style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Google</Text>
-          </TouchableOpacity> */}
 
           <TouchableOpacity onPress={() => navigation.navigate('Register')}>
             <Text style={styles.registerLink}>

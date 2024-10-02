@@ -9,6 +9,7 @@ import Icon from 'react-native-vector-icons/FontAwesome';
 import { Api } from '../Api/Api';
 import { useDispatch } from 'react-redux';
 import { postRegister } from '../Redux/Auth/action';
+
 const validationSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
@@ -38,6 +39,7 @@ console.log(values)
     setErrorMessage(res?.payload?.response?.data?.message)
   }
   if(res?.payload?.message === "Sign up successful"){
+   
     navigation.replace("Login")
   }
  })

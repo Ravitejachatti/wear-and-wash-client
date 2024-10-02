@@ -1,40 +1,52 @@
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
-import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
-import { createDrawerNavigator } from "@react-navigation/drawer";
-import Home from "./Screens/Home";
-import Splash from "./Screens/Splash";
-import Register from "./Screens/Register";
-import Login from "./Screens/Login";
-import Settings from "./Screens/Settings";
-import Profile from "./Screens/Profile";
-import { Provider } from "react-redux";
-import { Store } from "./Redux/Store";
-import Location from "./Screens/Location";
-import Payment from "./Screens/Payment";
-import { useEffect, useState } from "react";
-import { getData } from "./Storage/getData"; 
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { Provider } from 'react-redux';
+import { Store } from './Redux/Store';
+import Splash from './Screens/Splash';
+import Login from './Screens/Login';
+import Register from './Screens/Register';
+import Home from './Screens/Home';
+import Profile from './Screens/Profile';
+import Location from './Screens/Location';
+import ContactUs from './Screens/ContactUs';
+import History from './Screens/History';
+import Payment from './Screens/Payment'
+import { getData } from './Storage/getData'; 
+import { removeItem } from './Storage/removeItem';
+import Testing from './Screens/Testing';
+// import removeData for token removal
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
-function MainStack() {
+function MainStack({ navigation }) {
+  const handleLogout = async () => {
+    await removeItem('token'); // Remove token from storage
+    navigation.navigate('Login'); // Navigate back to login
+  };
+
   return (
     <Drawer.Navigator
-      screenOptions={{
-        headerStyle: {
-          height: 80,
-        },
-        headerTitle: "",
-      }}
       initialRouteName="Home"
+      screenOptions={{
+        headerShown: true,
+      }}
     >
       <Drawer.Screen name="Home" component={Home} />
-      <Drawer.Screen name="Settings" component={Settings} />
       <Drawer.Screen name="Profile" component={Profile} />
+      <Drawer.Screen name="History" component={History} />
       <Drawer.Screen name="Location" component={Location} />
-      <Drawer.Screen name="Payment" component={Payment} />
+      <Drawer.Screen name="ContactUs" component={ContactUs} />
+      <Drawer.Screen name="Testing" component={Testing} />
+      <Drawer.Screen name="Logout">
+        {() => {
+          handleLogout(); // Execute the logout process
+          return null; // Return null because we don't need to render anything
+        }}
+      </Drawer.Screen>
     </Drawer.Navigator>
   );
 }
@@ -45,18 +57,17 @@ export default function App() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const token = await getData("token"); 
-      setIsAuthenticated(!!token); 
-      setIsLoading(false); 
+      const token = await getData('token');
+      setIsAuthenticated(!!token);
+      setIsLoading(false);
     };
 
-    checkAuth(); 
+    checkAuth();
   }, []);
 
   if (isLoading) {
-    
     return (
-      <View style={styles.loadingContainer}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#0000ff" />
       </View>
     );
@@ -65,46 +76,18 @@ export default function App() {
   return (
     <Provider store={Store}>
       <NavigationContainer>
-        <Stack.Navigator initialRouteName="Login">
-          <Stack.Group>
-            {!isAuthenticated ? (
-              <>
-                <Stack.Screen
-                  options={{ headerShown: false }}
-                  name="Splash"
-                  component={Splash}
-                />
-                <Stack.Screen
-                  options={{ headerShown: false }}
-                  name="Register"
-                  component={Register}
-                />
-                <Stack.Screen
-                  options={{ headerShown: false }}
-                  name="Login"
-                  component={Login}
-                />
-              </>
-            ) : (
-              <>
-                <Stack.Screen
-                  options={{ headerShown: false }}
-                  name="Main"
-                  component={MainStack}
-                />
-              </>
-            )}
-          </Stack.Group>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Splash" component={Splash} />
+          {!isAuthenticated ? (
+            <>
+              <Stack.Screen name="Login" component={Login} />
+              <Stack.Screen name="Register" component={Register} />
+            </>
+          ) : (
+            <Stack.Screen name="Main" component={MainStack} />
+          )}
         </Stack.Navigator>
       </NavigationContainer>
     </Provider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-});

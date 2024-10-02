@@ -17,6 +17,7 @@ const PaymentComp = () => {
   const navigation = useNavigation()
 
   useEffect(() => {
+    
     const userSelectedDetails = async () => {
       try {
         const date = await getData("date");
@@ -26,7 +27,7 @@ const PaymentComp = () => {
         const centerId = await getData("locationId");
         const machineId  = await getData("machineId");
 
-        console.log("console ids",userId,centerId, machineId,timeSlot, date)
+        //console.log("console ids",userId,centerId, machineId,timeSlot, date)
 
         if (date && timeSlot && machineName && userId && centerId && machineId) {
             console.log("CHECKING ids",userId,centerId,machineName, machineId,timeSlot, date)
@@ -43,28 +44,36 @@ const PaymentComp = () => {
     };
 
     userSelectedDetails();
-  }, []);
+  // Focus listener to refetch data when screen is focused
+  const unsubscribe = navigation.addListener('focus', () => {
+    userSelectedDetails();
+  });
 
-  const handleSubmit = () => {
-    const payload = {
-      userId, centerId, machineId, timeSlot, date
-    };
-    dispatch(bookingSlot(payload))
-      .then(res => {
-         dispatch(getBasedOnLocation())
-         dispatch(getUserBookingSlot())
-        console.log("resPayment",res);
-        if(res?.payload?.status === "confirmed"){
-          navigation.navigate("Home")
-        }
-      })
-      .catch(err => {
-        console.log(err);
-      });
+  return unsubscribe; // Cleanup the listener on unmount
+}, [navigation]);
+
+  const handleSubmit = async () => {
+  const payload = {
+    userId, centerId, machineId, timeSlot, date
   };
+  
+  try {
+    const response = await dispatch(bookingSlot(payload));
+    dispatch(getBasedOnLocation());
+    dispatch(getUserBookingSlot());
+    console.log("Booking response:", response);
+    if(response?.payload?.status === "confirmed"){
+      navigation.replace('Main', { screen: 'Home' });
+    }
+  } catch (error) {
+    console.error("Error during booking:", error);
+    alert("Booking failed. Please try again.");
+  }
+};
+
 
   return (
-    <View style={styles.wrapper}>
+    <View >
      
       <View style={styles.container}>
         {date && <Text style={styles.heading}>Date : {date}</Text>}
