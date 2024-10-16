@@ -34,7 +34,7 @@ const HomeComp = () => {
     
                 setUserId(JSON.parse(storedUserId));
                 // console.log("before")
-                const res = await dispatch(getUserBookingSlot());
+                const res = await dispatch(getUserBookingSlot(userId));
                 setIsLoading(false);
                 // console.log("after")
     

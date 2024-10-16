@@ -17,7 +17,7 @@ const History = () => {
             try {
                 const userId = await getData("userId");
                 setUserId(JSON.parse(userId));
-                await dispatch(getUserBookingSlot());
+                await dispatch(getUserBookingSlot(userId));
             } catch (err) {
                 console.error(err);
             }

@@ -48,7 +48,7 @@ const Login = () => {
             const userId = JSON.parse(userIdFromStorage);
             
             // Fetch user bookings
-            dispatch(getUserBookingSlot( ))
+            dispatch(getUserBookingSlot(userId))
             .then(async (res) => {
               const bookings = res.payload;
               // console.log("All Bookings from API:", bookings);

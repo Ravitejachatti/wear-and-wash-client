@@ -27,6 +27,7 @@ const PaymentComp = () => {
         const centerId = await getData("locationId");
         const machineId  = await getData("machineId");
 
+
         //console.log("console ids",userId,centerId, machineId,timeSlot, date)
 
         if (date && timeSlot && machineName && userId && centerId && machineId) {
@@ -60,7 +61,7 @@ const PaymentComp = () => {
   try {
     const response = await dispatch(bookingSlot(payload));
     dispatch(getBasedOnLocation());
-    dispatch(getUserBookingSlot());
+    dispatch(getUserBookingSlot(userId));
     console.log("Booking response:", response);
     if(response?.payload?.status === "confirmed"){
       navigation.replace('Main', { screen: 'Home' });

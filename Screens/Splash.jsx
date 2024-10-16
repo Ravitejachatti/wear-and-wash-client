@@ -19,13 +19,14 @@ const Splash = () => {
       try {
         const token = await getData('token');
         const userId = await getData('userId') // Retrieve the token from async storage
-        // console.log(token)
+        const parseUserId = JSON.parse(userId)
+        console.log("splash screen ",parseUserId)
         
 
         if (token) {
           // If user is authenticated, fetch future bookings
           
-          dispatch(getUserBookingSlot())
+          dispatch(getUserBookingSlot(parseUserId))
           .then(async (res) => {
             const bookings = res.payload;
             console.log("All Bookings from API:", bookings);

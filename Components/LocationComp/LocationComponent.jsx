@@ -61,7 +61,7 @@ const LocationComponent = () => {
 
 
   const getCurrentTime = async () => {
-    const currentDate = await fetchCurrentDate();  // Get the current date with the correct timezone
+  const currentDate = await fetchCurrentDate();  // Get the current date with the correct timezone
   const currentHour = currentDate.getHours();    // Use `getHours()` to get the local hours
   const currentMinute = currentDate.getMinutes(); // Use `getMinutes()` to get the local minutes
 
@@ -90,8 +90,6 @@ const LocationComponent = () => {
   const isSlotAvailable = async (slot) => {
     const [startTime] = slot.value.split("-"); // Extract the start time
     const { currentHour, currentMinute } = await getCurrentTime(); // Get the current time
-    console.log("Current Hour: ", currentHour, "Current Minute: ", currentMinute);
-  
     const [slotHour, slotMinute] = startTime.split(":");
   
     // Convert to integers for comparison
@@ -99,31 +97,39 @@ const LocationComponent = () => {
     const slotMinuteInt = parseInt(slotMinute, 10);
     const currentHourInt = parseInt(currentHour, 10);
     const currentMinuteInt = parseInt(currentMinute, 10);
-    console.log("testing 3 ",slotHourInt,slotMinuteInt,currentHourInt,currentMinuteInt)
   
-    // Check if the slot is at least one hour ahead of the current time
+    // Only filter for the current date, checking if the slot is in the future
     return (
-      slotHourInt > currentHourInt + 1 || 
-      (slotHourInt === currentHourInt + 1 && slotMinuteInt > currentMinuteInt)
+      slotHourInt > currentHourInt+1 || 
+      (slotHourInt === currentHourInt && slotMinuteInt > currentMinuteInt)
     );
   };
   
-
   const filterAvailableSlots = async () => {
-    const currentDate = await fetchCurrentDate();  // Only fetch once
-    const selectedDateValue = new Date(date);
-    let filteredSlots;
+    const currentDate = await fetchCurrentDate();  // Fetch the current date once
+    const selectedDateValue = new Date(date); // Use the selected date from the state
   
-    // Compare selected date with the current date
-    if (selectedDateValue.toDateString() === currentDate.toDateString()) { 
-      filteredSlots = timeSlots.filter(isSlotAvailable);  // Filter future slots for the same day
-      console.log(filteredSlots," testing 2")
+    let filteredSlots = [];
+  
+    if (selectedDateValue.toDateString() === currentDate.toDateString()) {
+      // For today's date, filter only future time slots based on the current time
+      const slotChecks = timeSlots.map(async (slot) => {
+        const available = await isSlotAvailable(slot);
+        return available ? slot : null;
+      });
+      filteredSlots = (await Promise.all(slotChecks)).filter(Boolean); // Filter out null (unavailable) slots
+    } else if (selectedDateValue > currentDate) {
+      // If the selected date is in the future, show all time slots without filtering
+      filteredSlots = timeSlots;
     } else {
-      filteredSlots = timeSlots;  // Show all slots for future dates
+      // If the selected date is in the past, no slots are available
+      filteredSlots = [];
     }
-    
+  
+    // Set the available slots in the state
     setAvailableSlots(filteredSlots);
   };
+  
   
 
   const store = useSelector((state) => state.app.centers);
@@ -136,6 +142,10 @@ const LocationComponent = () => {
 
   // Fetch user location, user ID, and future bookings
   useEffect(() => {
+   
+  
+    filterAvailableSlots();
+ 
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -211,7 +221,22 @@ setMaximumDate(maximumDate)
 
     fetchData();
     currentDate();
-  }, [dispatch]);
+  }, [date,dispatch]);
+
+  const onChange = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShow(Platform.OS === 'ios');
+    setDate(currentDate);
+  
+    const formatted = currentDate.toISOString().split('T')[0];
+    setFormattedDate(formatted);
+    // filterAvailableSlots(); // Re-filter slots based on the selected date
+  };
+
+  const showDatepicker = () => {
+    setShow(true);
+  };
+
 
   const handleCenterChange = (value) => { 
     setSelectedTimeSlot(value);
@@ -288,20 +313,19 @@ setMaximumDate(maximumDate)
     }
   };
 
-  const onChange = (event, selectedDate) => {
-    const currentDate = selectedDate || date;
-    setShow(Platform.OS === 'ios');
-    setDate(currentDate);
+  // const onChange = (event, selectedDate) => {
+  //   const currentDate = selectedDate || date;
+  //   setShow(Platform.OS === 'ios');
+  //   setDate(currentDate);
+  
+  //   const formatted = currentDate.toISOString().split('T')[0];
+  //   setFormattedDate(formatted);
+  //   filterAvailableSlots(); // Re-filter slots based on the selected date
+  // };
 
-    const formatted = currentDate.toISOString().split('T')[0];
-    console.log("formated date",formatted)
-    setFormattedDate(formatted);
-    filterAvailableSlots(); // Re-filter slots based on the selected date
-  };
-
-  const showDatepicker = () => {
-    setShow(true);
-  };
+  // const showDatepicker = () => {
+  //   setShow(true);
+  // };
 
   return (
     <View style={styles.main}>
@@ -375,6 +399,14 @@ setMaximumDate(maximumDate)
     </View>
   );
 };
+
+
+
+
+
+
+
+
 
 const styles = StyleSheet.create({
   dropDownContainer: {
