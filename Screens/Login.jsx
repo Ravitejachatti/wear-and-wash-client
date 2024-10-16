@@ -13,6 +13,7 @@ import { addData } from '../Storage/addData';
 import { getData } from '../Storage/getData';
 import { countUserFutureBookings } from '../utils/bookingUtils';
 
+
 const validationSchema = Yup.object().shape({
   email: Yup.string().email('Invalid email').required('Email is required'),
   password: Yup.string().min(6, 'Password too short').required('Password is required'),
@@ -124,6 +125,12 @@ const Login = () => {
               Don't have an account? <Text style={{ color: theme.color.primary }}>SignUp</Text>
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('ForgetPasswordScreen')}>
+            <Text style={styles.registerLink}>
+              <Text style={{ color: theme.color.primary }}>Forget Password</Text>
+            </Text>
+          </TouchableOpacity>
+
         </View>
       )}
     </Formik>

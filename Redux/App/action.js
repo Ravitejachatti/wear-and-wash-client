@@ -37,9 +37,11 @@ return  axios.post(`${Api}/api/bookings/createBookingAndUpdateSlot`, payload)
 export const getUserBookingSlot =()=> (dispatch)=>{
   
   dispatch({type:types.GET_USER_BOOK_SLOT_REQUEST})
+  
 
 return  axios.get(`${Api}/api/bookings`, )
   .then(res=>{
+    console.log(res.payload)
    return  dispatch({type:types.GET_USER_BOOK_SLOT_SUCCESS, payload:res.data.data})
   })
   .catch(err=>{

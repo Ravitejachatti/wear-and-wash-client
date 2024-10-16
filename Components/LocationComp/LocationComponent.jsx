@@ -15,6 +15,7 @@ import AnimatedPaymentComp from "../PaymentComp/AnimatedPaymentComp";
 import { getUserBookingsForCurrentMonth } from "../../utils/futureBookingUtils";
 import { fetchCurrentDate } from "../../utils/getCurrentTime";
 
+
 const LocationComponent = () => {
   const navigation = useNavigation();
   const dispatch = useDispatch();
@@ -59,25 +60,71 @@ const LocationComponent = () => {
   ];
 
 
-  const getCurrentTime = () => {
-    const now = new Date();
-    return now.getHours() + ":" + now.getMinutes();
-  };
+  const getCurrentTime = async () => {
+    const currentDate = await fetchCurrentDate();  // Get the current date with the correct timezone
+  const currentHour = currentDate.getHours();    // Use `getHours()` to get the local hours
+  const currentMinute = currentDate.getMinutes(); // Use `getMinutes()` to get the local minutes
 
+  // Ensure proper formatting of hours and minutes with padding
+  const formattedHour = currentHour.toString().padStart(2, '0');
+  const formattedMinute = currentMinute.toString().padStart(2, '0');
 
+  console.log(`Current Time: ${formattedHour}:${formattedMinute}`);
+  return { currentHour: formattedHour, currentMinute: formattedMinute };
+};
 
-  const isSlotAvailable = (slot) => {
-    const [startTime] = slot.value.split("-");
-    const [currentHour, currentMinute] = getCurrentTime().split(":");
+  // const isSlotAvailable = async (slot) => {
+  //   const [startTime] = slot.value.split("-");
+  //   const { currentHour, currentMinute } = await getCurrentTime();
+  //   // console.log("location ",currentHour)
 
-    // Compare times to see if the slot is available
+  //   // Compare times to see if the slot is available
+  //   const [slotHour, slotMinute] = startTime.split(":");
+  //   return (
+  //     parseInt(slotHour, 10) > parseInt(currentHour, 10) ||
+  //     (parseInt(slotHour, 10) === parseInt(currentHour, 10) &&
+  //       parseInt(slotMinute, 10) > parseInt(currentMinute, 10))
+  //   );
+  // };   
+
+  const isSlotAvailable = async (slot) => {
+    const [startTime] = slot.value.split("-"); // Extract the start time
+    const { currentHour, currentMinute } = await getCurrentTime(); // Get the current time
+    console.log("Current Hour: ", currentHour, "Current Minute: ", currentMinute);
+  
     const [slotHour, slotMinute] = startTime.split(":");
+  
+    // Convert to integers for comparison
+    const slotHourInt = parseInt(slotHour, 10);
+    const slotMinuteInt = parseInt(slotMinute, 10);
+    const currentHourInt = parseInt(currentHour, 10);
+    const currentMinuteInt = parseInt(currentMinute, 10);
+    console.log("testing 3 ",slotHourInt,slotMinuteInt,currentHourInt,currentMinuteInt)
+  
+    // Check if the slot is at least one hour ahead of the current time
     return (
-      parseInt(slotHour, 10) > parseInt(currentHour, 10) ||
-      (parseInt(slotHour, 10) === parseInt(currentHour, 10) &&
-        parseInt(slotMinute, 10) > parseInt(currentMinute, 10))
+      slotHourInt > currentHourInt + 1 || 
+      (slotHourInt === currentHourInt + 1 && slotMinuteInt > currentMinuteInt)
     );
   };
+  
+
+  const filterAvailableSlots = async () => {
+    const currentDate = await fetchCurrentDate();  // Only fetch once
+    const selectedDateValue = new Date(date);
+    let filteredSlots;
+  
+    // Compare selected date with the current date
+    if (selectedDateValue.toDateString() === currentDate.toDateString()) { 
+      filteredSlots = timeSlots.filter(isSlotAvailable);  // Filter future slots for the same day
+      console.log(filteredSlots," testing 2")
+    } else {
+      filteredSlots = timeSlots;  // Show all slots for future dates
+    }
+    
+    setAvailableSlots(filteredSlots);
+  };
+  
 
   const store = useSelector((state) => state.app.centers);
   const filterLocation = userLocation && Array.isArray(store)
@@ -104,32 +151,39 @@ const LocationComponent = () => {
         // Fetch future bookings
         const response = await dispatch(getUserBookingSlot()); // Ensure getUserBookingSlot is an async action
         const bookings = response.payload;
+        // console.log("bookings in location ",bookings)
 
-        // Calculate future bookings for the current user
-        const futureBookings = countUserFutureBookings(bookings,userId);
-        setFutureBookingsCount(futureBookings.length); // Update the future bookings count
 
-        console.log("currentMonthbookingBefore ",currentMonthBooking)
+        // Count bookings for the current month
+        const userBookings = await countUserFutureBookings(bookings, JSON.parse(userId));
+        // console.log("User bookings in home:", userBookings);
+
+        setFutureBookingsCount(userBookings.length); // Update the future bookings count
+        // console.log("futurebooking count in location ",futureBookingsCount)
+
+        // console.log("currentMonthbookingBefore ",currentMonthBooking)
 
         const CurrentMonth = getUserBookingsForCurrentMonth(bookings,userId)
-        console.log("currentMonth original ",CurrentMonth.length)
+        // console.log("currentMonth original ",CurrentMonth.length)
         //const currentMonthBooking = getUserBookingsForCurrentMonth(bookings,JSON.parse(userId))
         setCurrentMonthBooking(CurrentMonth.length)
-        console.log("current Month bookings ",currentMonthBooking)
+        // console.log("current Month bookings ",currentMonthBooking)
 
-        console.log("currentMonthbookingAfter ",currentMonthBooking)
+        // console.log("currentMonthbookingAfter ",currentMonthBooking)
         setLoading(true);
 
-        if (futureBookings.length > 0) {
+        if (userBookings.length > 0) {
           Alert.alert('You have upcoming bookings!'); // Alert the user if they have any future bookings 
         }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        // console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
     const filteredSlots = timeSlots.filter(isSlotAvailable);
+    console.log("filtering slots")
+    console.log(filteredSlots)
     setAvailableSlots(filteredSlots);
 
 
@@ -149,17 +203,17 @@ setMinimumDate(minimumDate)
 const maximumDate = new Date(year, month + 1, 0); // Last day of the month
 setMaximumDate(maximumDate)
 
-console.log("Minimum Date:", minimumDate);  // Output: Current date
-console.log("Maximum Date:", maximumDate);  // Output: Last day of September 2024
+// console.log("Minimum Date:", minimumDate);  // Output: Current date
+// console.log("Maximum Date:", maximumDate);  // Output: Last day of September 2024
   
 }
     
 
     fetchData();
     currentDate();
-  }, [dispatch,currentMonthBooking]);
+  }, [dispatch]);
 
-  const handleCenterChange = (value) => {
+  const handleCenterChange = (value) => { 
     setSelectedTimeSlot(value);
   };
 
@@ -226,7 +280,7 @@ console.log("Maximum Date:", maximumDate);  // Output: Last day of September 202
         setShowPayment(true);
 
       } catch (error) {
-        console.error("Error storing data:", error);
+        // console.error("Error storing data:", error);
         alert("Error storing data. Please try again.");
       }
     } else {
@@ -240,7 +294,9 @@ console.log("Maximum Date:", maximumDate);  // Output: Last day of September 202
     setDate(currentDate);
 
     const formatted = currentDate.toISOString().split('T')[0];
+    console.log("formated date",formatted)
     setFormattedDate(formatted);
+    filterAvailableSlots(); // Re-filter slots based on the selected date
   };
 
   const showDatepicker = () => {
@@ -249,25 +305,7 @@ console.log("Maximum Date:", maximumDate);  // Output: Last day of September 202
 
   return (
     <View style={styles.main}>
-      <View style={styles.dropDownContainer}>
-        <View style={styles.inputWrapper}>
-          <RNPickerSelect
-            onValueChange={handleCenterChange}
-            placeholder={{
-              label: "Select the Slot",
-              value: null,
-            }}
-            items={availableSlots}
-            style={{
-              inputIOS: styles.input,
-              inputAndroid: styles.input,
-              placeholder: styles.placeholder,
-              iconContainer: styles.iconContainer,
-            }}
-          />
-        </View>
-
-        <View style={styles.dateInputWrapper}>
+     <View style={styles.dateInputWrapper}>
           <TouchableOpacity style={styles.iconContainer} onPress={showDatepicker}>
             <FontAwesome5 name="calendar-alt" size={24} color="gray" />
           </TouchableOpacity>
@@ -289,6 +327,25 @@ console.log("Maximum Date:", maximumDate);  // Output: Last day of September 202
             />
           )}
         </View>
+      <View style={styles.dropDownContainer}>
+        <View style={styles.inputWrapper}>
+          <RNPickerSelect
+            onValueChange={handleCenterChange}
+            placeholder={{
+              label: "Select the Slot",
+              value: null,
+            }}
+            items={availableSlots}
+            style={{
+              inputIOS: styles.input,
+              inputAndroid: styles.input,
+              placeholder: styles.placeholder,
+              iconContainer: styles.iconContainer,
+            }}
+          />
+        </View>
+
+       
       </View>
 
       <View style={styles.listContainer}>

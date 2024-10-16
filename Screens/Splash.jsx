@@ -48,7 +48,7 @@ const Splash = () => {
           }})
         } else {
           // If no token (not authenticated), navigate to Login
-          navigation.replace('Login');
+          navigation.replace('Auth', { screen: 'Login' });  
         }
       } catch (error) {
         console.error('Error checking authentication and bookings', error);

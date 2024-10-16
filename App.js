@@ -13,21 +13,17 @@ import Profile from './Screens/Profile';
 import Location from './Screens/Location';
 import ContactUs from './Screens/ContactUs';
 import History from './Screens/History';
-import Payment from './Screens/Payment'
-import { getData } from './Storage/getData'; 
+import Payment from './Screens/Payment';
+import { getData } from './Storage/getData';
 import { removeItem } from './Storage/removeItem';
 import Testing from './Screens/Testing';
-// import removeData for token removal
+import ForgetPasswordScreen from './Screens/ForgetPasswordScreen';
+import ResetPassword from './Screens/ResetPassword';
 
 const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
-function MainStack({ navigation }) {
-  const handleLogout = async () => {
-    await removeItem('token'); // Remove token from storage
-    navigation.navigate('Login'); // Navigate back to login
-  };
-
+function MainStack() {
   return (
     <Drawer.Navigator
       initialRouteName="Home"
@@ -42,12 +38,32 @@ function MainStack({ navigation }) {
       <Drawer.Screen name="ContactUs" component={ContactUs} />
       <Drawer.Screen name="Testing" component={Testing} />
       <Drawer.Screen name="Logout">
-        {() => {
-          handleLogout(); // Execute the logout process
-          return null; // Return null because we don't need to render anything
-        }}
-      </Drawer.Screen>
+        {({ navigation }) => {
+          useEffect(() => {
+            const logout = async () => {
+              await removeItem('token');
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'Login' }],
+              });
+            };
+            logout();
+          }, [navigation]);
+
+          return null; // No UI component for Logout
+        }}</Drawer.Screen>
     </Drawer.Navigator>
+  );
+}
+
+function AuthStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={Login} />
+      <Stack.Screen name="Register" component={Register} />
+      <Stack.Screen name="ForgetPasswordScreen" component={ForgetPasswordScreen} />
+      <Stack.Screen name="ResetPassword" component={ResetPassword} />
+    </Stack.Navigator>
   );
 }
 
@@ -78,13 +94,10 @@ export default function App() {
       <NavigationContainer>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Splash" component={Splash} />
-          {!isAuthenticated ? (
-            <>
-              <Stack.Screen name="Login" component={Login} />
-              <Stack.Screen name="Register" component={Register} />
-            </>
-          ) : (
+          {isAuthenticated ? (
             <Stack.Screen name="Main" component={MainStack} />
+          ) : (
+            <Stack.Screen name="Auth" component={AuthStack} />
           )}
         </Stack.Navigator>
       </NavigationContainer>
