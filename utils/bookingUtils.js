@@ -3,6 +3,8 @@ import { fetchCurrentDate } from "./getCurrentTime";
 
 // Function to count future bookings for the current user
 export const countUserFutureBookings = async (bookings, userId) => {
+  console.log("userId from count userBookings ",userId)
+  console.log(bookings)
   if (!bookings || bookings.length === 0 || !userId) return 0;
 
   // Normalize userId to a string (remove surrounding quotes if they exist)
@@ -55,7 +57,7 @@ export const countUserFutureBookings = async (bookings, userId) => {
     return isUserMatch && (isFutureBooking || isOngoingBooking);
   });
 
-  // console.log("userFutureBookings:", userFutureBookings);
+  console.log("userFutureBookings:", userFutureBookings);
 
   return userFutureBookings; // Return the count of future bookings
 };

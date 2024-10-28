@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -30,36 +30,46 @@ const Register = () => {
   const [otp, setOtp] = useState('');
   const [userData, setUserData] = useState(null); // Store user data after initial registration
   const navigation = useNavigation();
+  const [isLoading, setIsLoading] = useState(false); // Loading state
+
 
   const handleSubmit = (values) => {
+    setIsLoading(true);
     if (!otpSent) {
       // Initial Registration
       dispatch(postRegister(values))
+      
         .then((res) => {
           if (res?.payload?.response?.data?.message) {
-             console.log("register")
+             // console.log("register")
             setErrorMessage(res?.payload?.response?.data?.message);
           } else if (res?.payload?.message === 'OTP sent to your email. Please verify to complete registration.') {
             setOtpSent(true);
+            setIsLoading(false);
             setUserData(values); // Save the user data for OTP verification
             setErrorMessage(''); // Clear previous errors
+            
           }
         })
         .catch((err) => {
-          console.log('error', err);
+          // console.log('error', err);
         });
     } else {
       // OTP Verification
+      setIsLoading(true);
       dispatch(postVerifyOtp({ name: userData.name, email: userData.email, password:userData.password, phone:userData.phone, gender:userData.gender, location:userData.location, role:userData.role, otp }))
         .then((res) => {
+          // console.log("res",res.payload.message)
           if (res?.payload?.message === 'Registration successful') {
+            setIsLoading(false);
             navigation.replace('Login');
           } else {
             setErrorMessage('Invalid OTP');
           }
+
         })
         .catch((err) => {
-          console.log('error', err);
+          // console.log('error', err);
           setErrorMessage('OTP verification failed');
         });
     }
@@ -180,8 +190,12 @@ const Register = () => {
             )}
 
             <TouchableOpacity onPress={handleSubmit} style={styles.btn}>
-              <Text style={styles.btnText}>{otpSent ? 'Verify OTP' : 'Register'}</Text>
+            {isLoading ? ( // Show loading indicator when isLoading is true
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (<Text style={styles.btnText}>{otpSent ? 'Verify OTP' : 'Register'}</Text>)}
+              
             </TouchableOpacity>
+            
           </View>
         )}
       </Formik>

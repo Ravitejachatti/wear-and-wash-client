@@ -8,10 +8,11 @@ import { removeItem } from '../../Storage/removeItem';
 import { useNavigation } from '@react-navigation/native';
 import { countUserFutureBookings } from '../../utils/bookingUtils';
 import Testing from '../../Screens/Testing';
+import MachineStart from '../MachineStart/MachineStart';
 
 
 
-const HomeComp = () => {
+const HomeComp = () => { 
     const store = useSelector(state => state.app.bookings);
     const dispatch = useDispatch();
     const [userId, setUserId] = useState(null);
@@ -33,23 +34,25 @@ const HomeComp = () => {
                 }
     
                 setUserId(JSON.parse(storedUserId));
-                // console.log("before")
-                const res = await dispatch(getUserBookingSlot(userId));
-                setIsLoading(false);
-                // console.log("after")
+                // console.log("response from the home ",JSON.parse(storedUserId))
+                // // console.log("before")
+                const res = await dispatch(getUserBookingSlot(JSON.parse(storedUserId)));
+                
+                // // console.log("after")
     
                 // Get bookings for the current user
                 const bookings = res.payload;
-                // console.log("bookings in the home")
-                // console.log("Bookings:", bookings);
+                // // console.log("bookings in the home")
+                // // console.log("Bookings:", bookings);
     
                 // Count bookings for the current month
                 const userBookings = await countUserFutureBookings(bookings, JSON.parse(storedUserId));
-                // console.log("User bookings in home:", userBookings);
+                // // console.log("User bookings in home:", userBookings);
     
                 setfilteredBookings(userBookings); // Set actual bookings, not the count
                 setBookingCount(userBookings.length);
-                // // console.log(filteredBookings.length)
+                // // // console.log(filteredBookings.length)
+                setIsLoading(false);
             } catch (err) {
                 // console.error("Error fetching bookings:", err);
             }
@@ -76,7 +79,8 @@ const HomeComp = () => {
 
     // Filter the bookings by matching userId with booking's userId
     const Bookings = store?.filter(booking => booking.userId._id === userId);
-    // console.log('filtered Bookings',filteredBookings.length)
+    // // console.log('filtered Bookings',filteredBookings.length)
+    // console.log("bookings from the home ",filteredBookings)
  
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -118,9 +122,9 @@ const HomeComp = () => {
 
            
       
-            <TouchableOpacity style={styles.startButton}>
-                <Text style={styles.buttonText}>Start</Text>
-            </TouchableOpacity>
+           
+
+            <MachineStart value={filteredBookings}/>
 
             {/* <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
                 <Text style={styles.buttonText}>Logout</Text>
@@ -186,34 +190,9 @@ const styles = StyleSheet.create({
         backgroundColor: 'blue',
         marginBottom: '20',
     },
-    startButton: {
-        backgroundColor: '#1E90FF', // Blue for the main button
-        paddingVertical: 15,
-        borderRadius: 10,
-        alignItems: 'center',
-        marginBottom: 15,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    // logoutButton: {
-    //     backgroundColor: '#1E90FF', // Red for the logout button to indicate a critical action
-    //     paddingVertical: 15,
-    //     borderRadius: 10,
-    //     alignItems: 'center',
-    //     shadowColor: '#1E90FF',
-    //     shadowOffset: { width: 0, height: 2 },
-    //     shadowOpacity: 0.2,
-    //     shadowRadius: 4,
-    //     elevation: 5,
-    // },
-    buttonText: {
-        fontSize: 18,
-        color: '#fff',
-        fontWeight: 'bold',
-    },
+ 
+ 
+    
 });
 
 export default HomeComp;  

@@ -1,12 +1,46 @@
-import React, { useRef, useEffect } from 'react';
-import { Animated, View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import React, { useRef, useEffect, useState } from 'react';
+import { Animated, View, StyleSheet } from 'react-native';
 import PaymentComp from './PaymentComp'; // Assuming PaymentComp is in the same directory
+import { getData } from '../../Storage/getData'; // Ensure you have access to getData to fetch from AsyncStorage
 
 const AnimatedPaymentComp = ({ isVisible, onClose }) => {
   const slideAnim = useRef(new Animated.Value(1000)).current; // Initial position off-screen
+  const [paymentData, setPaymentData] = useState({
+    date: null,
+    timeSlot: null,
+    machineName: null,
+    userId: null,
+    centerId: null,
+    machineId: null,
+  });
 
   useEffect(() => {
+    const fetchUserSelectedDetails = async () => {
+      try {
+        const date = await getData("date");
+        const machineName = await getData("machineName");
+        const timeSlot = await getData("timeSlot");
+        const userId = await getData("userId");
+        const centerId = await getData("locationId");
+        const machineId = await getData("machineId");
+
+        setPaymentData({
+          date: date ? JSON.parse(date) : null,
+          timeSlot: timeSlot ? JSON.parse(timeSlot) : null,
+          machineName: machineName ? JSON.parse(machineName) : null,
+          userId: userId ? JSON.parse(userId) : null,
+          centerId: centerId ? JSON.parse(centerId) : null,
+          machineId: machineId ? JSON.parse(machineId) : null,
+        });
+      } catch (error) {
+        console.error("Failed to fetch user-selected details from AsyncStorage", error);
+      }
+    };
+
     if (isVisible) {
+      // Fetch updated data and show the payment screen
+      fetchUserSelectedDetails();
+
       // Animate the component sliding up
       Animated.timing(slideAnim, {
         toValue: 0, // Slide to the top of the screen (visible)
@@ -33,9 +67,9 @@ const AnimatedPaymentComp = ({ isVisible, onClose }) => {
         },
       ]}
     >
-      {/* Payment Component */}
+      {/* Pass the updated data to PaymentComp */}
       <View style={styles.innerContainer}>
-        <PaymentComp />
+        <PaymentComp paymentData={paymentData} />
       </View>
     </Animated.View>
   );

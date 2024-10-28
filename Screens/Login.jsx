@@ -61,10 +61,11 @@ const Login = () => {
 
  
                  // Conditional navigation based on future bookings
-            if (Bookings.length === 0) {
+                 console.log("Bookings ",Bookings)
+            if (Bookings === 0) {
               console.log("Navigating to Location Page");
               navigation.navigate('Main', { screen: 'Location' });  // Navigate to Location page
-            } else if (Bookings.length >= 1) {
+            } else if (Bookings >= 1) {
               console.log("Navigating to Home Page");
               navigation.navigate('Main', { screen: 'Home' }); 
             }

@@ -10,14 +10,27 @@ const History = () => {
     const store = useSelector(state => state.app.bookings);
     const dispatch = useDispatch();
     const [userId, setUserId] = useState(null);
+    const [ bookings, setBookings] = useState([])
     const navigation = useNavigation();
+
 
     useEffect(() => {
         const fetchBookings = async () => {
             try {
-                const userId = await getData("userId");
-                setUserId(JSON.parse(userId));
-                await dispatch(getUserBookingSlot(userId));
+                const storedUserId = await getData("userId");
+                console.log("userId from ",storedUserId)
+                if (!storedUserId) {
+                    // console.error("User ID not found");
+                    return;
+                }
+    
+                setUserId(JSON.parse(storedUserId));
+                console.log("response from the home ",userId)
+                // console.log("before")
+                const res = await dispatch(getUserBookingSlot(JSON.parse(storedUserId)));
+                console.log("response from the history ",res.payload)
+                setBookings(res.payload)
+
             } catch (err) {
                 console.error(err);
             }
@@ -49,7 +62,7 @@ const History = () => {
             <View style={styles.content}>
                 {userBookings.length > 0 ? (
                     <FlatList
-                        data={userBookings}
+                        data={bookings}
                         renderItem={renderBookingItem}
                         keyExtractor={item => item._id}
                     />

@@ -16,14 +16,18 @@ const ResetPassword = () => {
   const dispatch = useDispatch();
   const { email } = route.params;
   const [errorMessage, setErrorMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // Loading state
 
   const handleSubmit = (values) => {
+    setIsLoading(true)
     dispatch(postResetPassword({ email, newPassword: values.newPassword }))
       .then((res) => {
         if (res?.payload?.message === 'Password reset successfully') {
+          setIsLoading(false)
           navigation.navigate('Login'); // Navigate to Login screen
         } else {
           setErrorMessage('Failed to reset password');
+          setIsLoading(false)
         }
       })
       .catch(() => setErrorMessage('Failed to reset password'));

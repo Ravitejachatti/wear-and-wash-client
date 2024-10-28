@@ -21,7 +21,7 @@ import ForgetPasswordScreen from './Screens/ForgetPasswordScreen';
 import ResetPassword from './Screens/ResetPassword';
 
 const Stack = createStackNavigator();
-const Drawer = createDrawerNavigator();
+const Drawer = createDrawerNavigator(); 
 
 function MainStack() {
   return (
@@ -36,7 +36,7 @@ function MainStack() {
       <Drawer.Screen name="History" component={History} />
       <Drawer.Screen name="Location" component={Location} />
       <Drawer.Screen name="ContactUs" component={ContactUs} />
-      <Drawer.Screen name="Testing" component={Testing} />
+      {/* <Drawer.Screen name="Testing" component={Testing} /> */}
       <Drawer.Screen name="Logout">
         {({ navigation }) => {
           useEffect(() => {
