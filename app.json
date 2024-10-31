@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "waerAndWash--template",
-    "slug": "waerAndWash--template",
+    "name": "WearNWash",
+    "slug": "WearNWash",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
