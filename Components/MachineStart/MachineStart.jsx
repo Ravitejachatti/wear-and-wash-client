@@ -1,14 +1,45 @@
 import React, { useEffect, useState } from 'react';
-import { Text, View, Button, StyleSheet, TouchableOpacity } from 'react-native';
+import { Text, View, Button, StyleSheet, TouchableOpacity, Alert, BackHandler, AppState } from 'react-native';
 import { Api } from '../../Api/Api';
+import { fetchCurrentDate } from '../../utils/getCurrentTime';
 
 const MachineStart = ({ value }) => {
   const [isButtonEnabled, setIsButtonEnabled] = useState(false); // State to manage button enable/disable
   const booking = value && value.length > 0 ? value[0] : null; // Get the first booking only if value is not null or empty
+ 
+  // Function to compare the current date and time from the device with the server's date and time
+  const areDateAndTimeEqual = (deviceTime, serverTime) => {
+    return (
+      deviceTime.getFullYear() === serverTime.getFullYear() &&
+      deviceTime.getMonth() === serverTime.getMonth() &&
+      deviceTime.getDate() === serverTime.getDate() &&
+      deviceTime.getHours() === serverTime.getHours() &&
+      deviceTime.getMinutes() === serverTime.getMinutes()
+    );
+  };
+
+  // Checking the time 
+  const checkDateTimeWithServer = async () => {
+    const serverTime = await fetchCurrentDate(); // Use fetchCurrentDate to get the current time from the server
+    if (!serverTime) return; // Exit if fetching server time failed
+
+    const deviceTime = new Date(); // Get the current date and time from the device
+
+    if (!areDateAndTimeEqual(deviceTime, serverTime)) {
+      Alert.alert(
+        'Time Mismatch',
+        'Your device date and time settings do not match the server. Please change your Date & Time to IST.',
+        [
+          { text: 'OK', onPress: () => BackHandler.exitApp() }, // Exit the application
+        ]
+      );
+    }
+  }
 
   // Function to check whether the current time falls within the first 5 minutes of the start time
   const checkTimeSlot = () => {
     if (!booking) return; // Exit if booking is null
+
 
     const currentTime = new Date(); // Get the current time
     const { startTime } = booking.timeSlot;
@@ -34,12 +65,26 @@ const MachineStart = ({ value }) => {
 
   useEffect(() => {
     if (!booking) return; // Prevent setting the interval if booking is null
+    checkDateTimeWithServer(); // Call the function to check date and time with the server
+    // Listen for app state changes
+    const handleAppStateChange = (nextAppState) => {
+      if (nextAppState === 'active') {
+        // App has come to the foreground, check date and time
+        checkDateTimeWithServer();
+      }
+    };
+
+    // Add event listener for app state changes
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
 
     // Check the time slot every second to enable or disable the button automatically
     const intervalId = setInterval(checkTimeSlot, 1000); // Check every second
 
     // Clean up the interval when the component unmounts or booking changes
     return () => clearInterval(intervalId);
+
+
+   
   }, [booking]); // Depend on booking to reset interval if it changes
 
   // Function to send machine status to the backend server
