@@ -32,11 +32,19 @@ const LocationComponent = () => {
   const [userLocation, setUserLocation] = useState(null);
 
   const timeSlots = [
-    { label: "09:00 - 09:30", value: "09:00-09:30" },
-    { label: "09:30 - 10:00", value: "09:30-10:00" },
-    { label: "10:00 - 10:30", value: "10:00-10:30" },
-    { label: "10:30 - 11:00", value: "10:30-11:00" },
-    { label: "15:30 - 16:00", value: "15:30-16:00" },
+    { label: "09:00 - 10:00", value: "09:00-10:00" },
+    { label: "10:00 - 11:00", value: "10:00-11:00" },
+    { label: "11:00 - 12:00", value: "11:00-12:00" },
+    { label: "12:00 - 13:00", value: "12:00-13:00" },
+    { label: "13:00 - 14:00", value: "13:00-14:00" },
+    { label: "14:00 - 15:00", value: "14:00-15:00" },
+    { label: "15:00 - 16:00", value: "15:00-16:00" },
+    { label: "16:00 - 17:00", value: "16:00-17:00" },
+    { label: "17:00 - 18:00", value: "17:00-18:00" },
+    { label: "18:00 - 19:00", value: "18:00-19:00" },
+    { label: "19:00 - 20:00", value: "19:00-20:00" },
+    { label: "20:00 - 21:00", value: "20:00-21:00" },
+    { label: "21:00 - 22:00", value: "21:00-22:00" }
 
     // ...more time slots as needed
   ];

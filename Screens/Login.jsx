@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useContext, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
@@ -12,6 +12,7 @@ import { getFutureUserBookings } from '../utils/futureBookingUtils';
 import { addData } from '../Storage/addData';
 import { getData } from '../Storage/getData';
 import { countUserFutureBookings } from '../utils/bookingUtils';
+import { AuthContext } from '../Components/Config/AuthContext';
 
 
 const validationSchema = Yup.object().shape({
@@ -22,6 +23,7 @@ const validationSchema = Yup.object().shape({
 const Login = () => {
   const [errorMessage, setErrorMessage] = useState('');
   const [futureBookings,setFutureBookings] = useState(0)
+  const { login } = useContext(AuthContext); // Use AuthContext
   const navigation = useNavigation();
   const dispatch = useDispatch();
  
@@ -37,42 +39,43 @@ const Login = () => {
 
         if (res?.payload?.message === 'login success') {
           try {
-            // Store user information locally
-            await addData('userLocation', res?.payload?.location);
-            await addData('userId', res?.payload?.id);
-            await addData('email', res?.payload?.email);
-            await addData('phone', res?.payload?.phone);
-            await addData('name', res?.payload?.name);
-            await addData('token', res?.payload?.token);
-            const userIdFromStorage = await getData('userId');
-            const userId = JSON.parse(userIdFromStorage);
+            // // Store user information locally
+            // await addData('userLocation', res?.payload?.location);
+            // await addData('userId', res?.payload?.id);
+            // await addData('email', res?.payload?.email);
+            // await addData('phone', res?.payload?.phone);
+            // await addData('name', res?.payload?.name);
+            // await addData('token', res?.payload?.token);
+            // const userIdFromStorage = await getData('userId');
+            // const userId = JSON.parse(userIdFromStorage);
             
-            // Fetch user bookings
-            dispatch(getUserBookingSlot(userId))
-            .then(async (res) => {
-              const bookings = res.payload;
-              // console.log("All Bookings from API:", bookings);
+            // // Fetch user bookings
+            // dispatch(getUserBookingSlot(userId))
+            // .then(async (res) => {
+            //   const bookings = res.payload;
+            //   // console.log("All Bookings from API:", bookings);
       
-              // Use the utility function to filter future bookings
-              const Bookings = await countUserFutureBookings(bookings,userId)
-              // console.log("Future Bookings for the User:", futureBookings);
-              setFutureBookings(Bookings); 
-              console.log("login")
+            //   // Use the utility function to filter future bookings
+            //   const Bookings = await countUserFutureBookings(bookings,userId)
+            //   // console.log("Future Bookings for the User:", futureBookings);
+            //   setFutureBookings(Bookings); 
+            //   console.log("login")
 
  
-                 // Conditional navigation based on future bookings
-                 console.log("Bookings ",Bookings)
-            if (Bookings === 0) {
-              console.log("Navigating to Location Page");
-              navigation.navigate('Main', { screen: 'Location' });  // Navigate to Location page
-            } else if (Bookings >= 1) {
-              console.log("Navigating to Home Page");
-              navigation.navigate('Main', { screen: 'Home' }); 
-            }
-              })
-              .catch((err) => {
-                console.log("Error fetching bookings:", err);
-              });
+            //      // Conditional navigation based on future bookings
+            // //      console.log("Bookings ",Bookings)
+            // // if (Bookings.length === 0) {
+            // //   console.log("Navigating to Location Page");
+            // //   navigation.navigate('Location', { screen: 'Location' });  // Navigate to Location page
+            // // } else if (Bookings.length >= 1) {
+            // //   console.log("Navigating to Home Page");
+            // //   navigation.navigate('Main', { screen: 'Home' }); 
+            // // } 
+            //   })
+            //   .catch((err) => {
+            //     console.log("Error fetching bookings:", err);
+            //   });
+            await login(res.payload);
           } catch (error) {
             console.log('Error storing user data:', error);
           }
