@@ -8,7 +8,7 @@ const Private = () => {
   useEffect(()=>{
     const getTokenData = async()=>{
       let token = await getData("token");
-      console.log("token: " + token)
+      // console.log("token: " + token)
       if(token){
         setToken(token)
       }

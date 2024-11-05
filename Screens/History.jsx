@@ -17,18 +17,18 @@ const History = () => {
     useEffect(() => {
         const fetchBookings = async () => {
             try {
-                const storedUserId = await getData("userId");
-                console.log("userId from ",storedUserId)
+                const storedUserId = await getData("userId"); 
+                // // console.log("userId from ",storedUserId)
                 if (!storedUserId) {
                     // console.error("User ID not found");
                     return;
                 }
     
                 setUserId(JSON.parse(storedUserId));
-                console.log("response from the home ",userId)
-                // console.log("before")
+                // // console.log("response from the home ",userId)
+                // // console.log("before")
                 const res = await dispatch(getUserBookingSlot(JSON.parse(storedUserId)));
-                console.log("response from the history ",res.payload)
+                // // console.log("response from the history ",res.payload)
                 setBookings(res.payload)
 
             } catch (err) {

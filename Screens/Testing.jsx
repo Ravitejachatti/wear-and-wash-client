@@ -1,180 +1,109 @@
-import React, { useState, useRef }  from 'react'
-import { View, StyleSheet, Button,Text } from 'react-native';
-import { Video, ResizeMode } from 'expo-av';
+import React, { useState, useEffect } from 'react';
+import { View, Button, TextInput, Platform, TouchableOpacity, StyleSheet } from 'react-native';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import moment from 'moment-timezone'; // Import moment-timezone for time zone conversion
 
-const Testing = () => {
-    const video = useRef(null);
-    const [status, setStatus] = useState({});
+const Testing = ({ onDateChange }) => {
+  const [date, setDate] = useState(new Date()); // Default date is the current date
+  const [show, setShow] = useState(false);
+  const [formattedDate, setFormattedDate] = useState(
+    moment(new Date()).tz('Asia/Kolkata').format('YYYY-MM-DD')
+  );
+  const [minimumDate, setMinimumDate] = useState(null);
+  const [maximumDate, setMaximumDate] = useState(null);
+
+  useEffect(() => {
+    const currentDateObj = moment().tz('Asia/Kolkata').toDate(); // Convert to IST
+    setMinimumDate(currentDateObj);
+
+    // Calculate the maximum date (last day of the current month in IST)
+    const year = currentDateObj.getFullYear();
+    const month = currentDateObj.getMonth();
+    const maxDate = new Date(year, month + 1, 0); // Last day of the current month
+    setMaximumDate(maxDate);
+  }, []);
+  
+
+  // Function to handle the change in date
+  const onChange = (event, selectedDate) => {
+    const currentDate = selectedDate || date;
+    setShow(Platform.OS === 'ios'); // Close the picker on Android
+
+    // Update the date in the state
+    setDate(currentDate);
+
+    // Convert the date to Indian Standard Time (IST)
+    const localDate = moment(currentDate).tz('Asia/Kolkata').format('YYYY-MM-DD');
+    setFormattedDate(localDate);
+    if (onDateChange) {
+      onDateChange(localDate); // Pass the formatted date to the parent
+    }
+  };
+
+  // Function to show the date picker
+  const showDatepicker = () => {
+    setShow(true);
+  };
+
   return (
-    <View style={styles.container}>
-        <Text style={styles.textShow}>How to use</Text>
-    <Video
-      ref={video}
-      style={styles.video}
-      source={{
-        uri: 'https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
-      }}
-      useNativeControls
-      resizeMode={ResizeMode.CONTAIN}
+    <View style={ styles.dateView }>
+      {/* Button to open the date picker */}
       
-      
-    />
-   
-  </View>
-  )
-}
 
-export default Testing
+      {/* TextInput to display and manually edit the date */}
+      <TextInput
+        style={{
+          
+          borderColor: '#ccc',
+          padding: 10,
+          
+          
+        }}
+        value={formattedDate}
+        onChangeText={(text) => {
+          setFormattedDate(text);
+          if (onDateChange) onDateChange(text); // Update the parent component when text is manually edited
+        }}
+        placeholder="YYYY-MM-DD"
+      />
+
+      {show &&  minimumDate && maximumDate &&  (
+        <DateTimePicker
+          value={date} // Set the initial date
+          mode="date" // Choose the mode (date, time, or datetime)
+          display="default" // Display style (spinner, default, etc.)
+          onChange={onChange} // Handle date change
+          minimumDate={minimumDate}  // Set the minimum date to current date
+          maximumDate={maximumDate}
+        />
+      )}
+
+<TouchableOpacity style={styles.iconContainer} onPress={showDatepicker}>
+            <FontAwesome5 name="calendar-alt" size={24} color="gray" />
+          </TouchableOpacity>
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
+  dateView:{
+    alignItems: "center",
+    justifyContent:"center",
+    display:"flex",
+    flexDirection:'row',
+    gap:90,
+    width:"80%",
+    borderWidth:1,
+    borderColor:"#ccc",
+    borderRadius:8,
+    paddingHorizontal:20,
+    paddingVertical:5
+  },
+  iconContainer: {
     
-    height: 250,
-  },
-  textShow:{
-    fontSize: 20,
-    color: '#1E90FF',
-
-  },
-  video: {
-    alignSelf: 'center',
-    width: 280,
-    height: 220,
-  },
-  buttons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 10,
   },
 });
 
-
-// import { WebView } from 'react-native-webview';
-// import Constants from 'expo-constants';
-// import { StyleSheet } from 'react-native';
-
-// export default function App() {
-//   return (
-//     <WebView
-//       style={styles.container}
-//       source={{ uri: 'https://expo.dev' }}
-//     />
-//   );
-// }
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     marginTop: Constants.statusBarHeight,
-//   },
-// });
-
-
-// import React, { useEffect, useState } from "react";
-// import { View, StyleSheet, TextInput, TouchableOpacity, Platform } from "react-native";
-// import DateTimePicker from '@react-native-community/datetimepicker';
-// import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';  // Importing icons
-// import { fetchCurrentDate } from "../utils/getCurrentTime";  // Assuming this function exists
-
-// const DatePickerComponent = () => {
-//   const [date, setDate] = useState(null);
-//   const [show, setShow] = useState(false);
-//   const [formattedDate, setFormattedDate] = useState('');
-//   const [minimumDate, setMinimumDate] = useState(null);
-//   const [maximumDate, setMaximumDate] = useState(null);
-
-//   // Fetch current date once the component mounts
-//   useEffect(() => {
-//     const fetchInitialDate = async () => {
-//       const currentDate = await fetchCurrentDate();  // Fetch the current date
-//       const currentDateObj = new Date(currentDate);  // Convert to a Date object
-//       setDate(currentDateObj);
-
-//       // Set the minimum and maximum date for the DateTimePicker
-//       setMinimumDate(currentDateObj);
-//       const year = currentDateObj.getFullYear();
-//       const month = currentDateObj.getMonth();
-//       setMaximumDate(new Date(year, month + 1, 0));  // Last day of the current month
-
-//       // Set the formatted date
-//       const formatted = currentDateObj.toISOString().split('T')[0];
-//       setFormattedDate(formatted);
-//     };
-
-//     fetchInitialDate();
-//   }, []);
-
-//   const handleDateChange = (event, selectedDate) => {
-//     const currentDate = selectedDate || date;
-//     setShow(Platform.OS === 'ios');
-//     setDate(currentDate);
-
-//     const formatted = currentDate.toISOString().split('T')[0];
-//     setFormattedDate(formatted);
-//   };
-
-//   const showDatepicker = () => {
-//     setShow(true);
-//   };
-
-//   return (
-//     <View style={styles.main}>
-//       <View style={styles.dateInputWrapper}>
-//         <TouchableOpacity style={styles.iconContainer} onPress={showDatepicker}>
-//           <FontAwesome5 name="calendar-alt" size={24} color="gray" />
-//         </TouchableOpacity>
-//         <TextInput
-//           style={styles.input}
-//           placeholder="Select Date"
-//           value={formattedDate}
-//           onFocus={showDatepicker}
-//           onChangeText={setFormattedDate} // Allow manual entry of date
-//         />
-//         {show && minimumDate && maximumDate && (
-//           <DateTimePicker
-//             value={date}
-//             mode="date"
-//             display="default"
-//             onChange={handleDateChange}
-//             minimumDate={minimumDate}  // Set the minimum date to current date
-//             maximumDate={maximumDate}  // Set the maximum date to the last day of the current month
-//           />
-//         )}
-//       </View>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   main: {
-//     padding: 20,
-//     justifyContent: 'center',
-//   },
-//   dateInputWrapper: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     borderWidth: 0.5,
-//     borderRadius: 10,
-//     padding: 5,
-//   },
-//   input: {
-//     paddingVertical: 15,
-//     paddingHorizontal: 5,
-//     color: "black",
-//     fontSize: 15,
-//     borderColor: "black",
-//     flex: 1,
-//   },
-//   iconContainer: {
-//     paddingHorizontal: 10,
-//   }
-// });
-
-// export default DatePickerComponent;
-
-
-
+export default Testing;

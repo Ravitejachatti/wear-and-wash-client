@@ -119,7 +119,7 @@ const MachineStart = ({ value }) => {
     }
   };
 
-  // console.log("filteredBooking from the start ", value);
+  // // console.log("filteredBooking from the start ", value);
 
   return (
     <View >

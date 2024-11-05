@@ -11,13 +11,17 @@ import RNPickerSelect from "react-native-picker-select";
 import AnimatedPaymentComp from "../PaymentComp/AnimatedPaymentComp";
 import { countUserFutureBookings } from "../../utils/bookingUtils";
 import { getUserBookingsForCurrentMonth } from "../../utils/futureBookingUtils"
+import moment from "moment-timezone";
+import Testing from "../../Screens/Testing";
 
 const LocationComponent = () => {
   const dispatch = useDispatch();
-  const [fetchedcurrentdate, setFetchedcurrentdate] = useState(null);
-  const [date, setDate] = useState(new Date());
+  const [fetchedcurrentdate, setFetchedcurrentdate] = useState( moment(new Date()).tz('Asia/Kolkata').format('YYYY-MM-DD'));
+  const [date, setDate] = useState(new Date()); // Default date is the current date
   const [show, setShow] = useState(false);
-  const [formattedDate, setFormattedDate] = useState('');
+  const [formattedDate, setFormattedDate] = useState(
+    moment(new Date()).tz('Asia/Kolkata').format('YYYY-MM-DD')
+  );
   const [minimumDate, setMinimumDate] = useState(null);
   const [maximumDate, setMaximumDate] = useState(null);
   const [availableSlots, setAvailableSlots] = useState([]);
@@ -30,6 +34,7 @@ const LocationComponent = () => {
   const [selectedMachineId, setSelectedMachineId] = useState(null);
   const [selectedMachineName, setSelectedMachineName] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(moment(new Date()).tz('Asia/Kolkata').format('YYYY-MM-DD'));
 
   const timeSlots = [
     { label: "09:00 - 10:00", value: "09:00-10:00" },
@@ -53,7 +58,7 @@ const LocationComponent = () => {
   useEffect(() => {
     const fetchInitialDate = async () => {
       const currentDate = await fetchCurrentDate();  // Fetch the current date
-      const currentDateObj = new Date(currentDate);  // Convert to a Date object
+      const currentDateObj = new Date();  // Convert to a Date object
 
       setFetchedcurrentdate(currentDateObj);
 
@@ -80,8 +85,8 @@ const LocationComponent = () => {
   }, [fetchedcurrentdate, date]);
 
   const filterAvailableSlots = async () => {
-    const currentDate = fetchedcurrentdate;  // Use the fetched current date
-    const selectedDateValue = new Date(date);  // Use the selected date from the state
+    const currentDate = new Date(fetchedcurrentdate);  // Use the fetched current date
+    const selectedDateValue = new Date(fetchedcurrentdate);  // Use the selected date from the state
 
     let filteredSlots = [];
 
@@ -106,8 +111,9 @@ const LocationComponent = () => {
 
   const isSlotAvailable = async (slot) => {
     const [startTime] = slot.value.split("-");
-    const currentHour = fetchedcurrentdate.getHours();
-    const currentMinute = fetchedcurrentdate.getMinutes();
+    const fetchedcurrentdateslot = new Date(fetchedcurrentdate)
+    const currentHour = fetchedcurrentdateslot.getHours();
+    const currentMinute = fetchedcurrentdateslot.getMinutes();
     const [slotHour, slotMinute] = startTime.split(":");
 
     const slotHourInt = parseInt(slotHour, 10);
@@ -120,22 +126,26 @@ const LocationComponent = () => {
     );
   };
 
-  const onChange = (event, selectedDate) => {
-    const currentDate = selectedDate || date;
-    setShow(Platform.OS === 'ios');
-    setDate(currentDate);
+  // const onChange = (event, selectedDate) => {
+  //   const currentDate = selectedDate || date;
+  //   // console.log("selected date ",currentDate)
+  //   setShow(Platform.OS === 'ios');
+  //   setDate(currentDate);
 
-    const formatted = currentDate.toISOString().split('T')[0];
-    setFormattedDate(formatted);
-  };
+  //   // Manually format the date as YYYY-MM-DD in local time
+  // const year = currentDate.getFullYear();
+  // const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Add 1 to month as it's zero-based
+  // const day = String(currentDate.getDate()).padStart(2, '0');
 
-  const showDatepicker = () => {
-    setShow(true);
-  };
+  // const formatted = `${year}-${month}-${day}`;
+  // setFormattedDate(formatted)
+  // };
+
+ 
 
   // Fetch user location, user ID, and future bookings
   useEffect(() => {
-    // console.log("useffect 2")
+    // // console.log("useffect 2")
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -151,15 +161,15 @@ const LocationComponent = () => {
         const response = await dispatch(getUserBookingSlot(JSON.parse(userId)));
 
         const bookings = response.payload;
-        // // console.log("bookings test ",bookings)
-          // console.log("testing")
+        // // // console.log("bookings test ",bookings)
+          // // console.log("testing")
         const userBookings = await countUserFutureBookings(bookings, JSON.parse(userId));
         setFutureBookingsCount(userBookings.length);
         
 
         const CurrentMonth = getUserBookingsForCurrentMonth(bookings, userId);
         setCurrentMonthBooking(CurrentMonth.length);
-        // console.log("testing")
+        // // console.log("testing")
 
         // console.log("edge Cases ",userBookings,CurrentMonth)
 
@@ -201,7 +211,7 @@ const LocationComponent = () => {
       try {
         await addData("machineId", selectedMachineId?._id);
         await addData("machineName", selectedMachineId?.name);
-        await addData("date", formattedDate);
+        await addData("date", selectedDate);
         await addData("timeSlot", selectedTimeSlot);
         await addData("locationId", filterLocation[0]?._id);
 
@@ -213,6 +223,10 @@ const LocationComponent = () => {
     } else {
       alert("Please select both a machine and a time slot.");
     }
+  };
+
+  const handleClosePayment = () => {
+    setShowPayment(false); // Close the payment component
   };
 
   
@@ -253,26 +267,8 @@ const LocationComponent = () => {
   return (
     <View style={styles.main}>
      <View style={styles.dateInputWrapper}>
-          <TouchableOpacity style={styles.iconContainer} onPress={showDatepicker}>
-            <FontAwesome5 name="calendar-alt" size={24} color="gray" />
-          </TouchableOpacity>
-          <TextInput
-            style={styles.input}
-            placeholder="Select Date"
-            value={formattedDate}
-            onFocus={showDatepicker}
-            onChangeText={setFormattedDate} // Allow manual entry of date
-          />
-          {show && minimumDate && maximumDate && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="default"
-              onChange={onChange}
-              minimumDate={minimumDate}  // Set the minimum date to current date
-              maximumDate={maximumDate}  // Set the maximum date to the last day of the current month
-            />
-          )}
+     <Testing onDateChange={setSelectedDate} />
+         
         </View>
       <View style={styles.dropDownContainer}>
         <View style={styles.inputWrapper}>
@@ -317,7 +313,7 @@ const LocationComponent = () => {
       {/* Animated PaymentComp */}
       <AnimatedPaymentComp
         isVisible={showPayment}
-        onClose={() => setShowPayment(false)} // Close the payment screen
+        onClose={handleClosePayment} // Close the payment screen
       />
     </View>
   );
@@ -332,94 +328,102 @@ const LocationComponent = () => {
 
 
 const styles = StyleSheet.create({
+  main:{
+  alignItems:"center",
+  justifyContent:"center"
+  },
   dropDownContainer: {
-    marginBottom: 30,
-    marginLeft: 20,
-    marginRight: 20,
-    marginTop: 20,
+    marginTop:20,
+    marginBottom: 20,
+    marginHorizontal: 20,
+    width:"75%"
   },
   inputWrapper: {
-    borderWidth: 0.5,
+    borderWidth: 1,
     borderRadius: 10,
-    marginBottom: 30,
+    borderColor: "#d3d3d3",
+    marginBottom: 20,
   },
   input: {
-    paddingVertical: 15,
-    paddingHorizontal: 5,
-    color: "black",
-    fontSize: 15,
-    borderColor: "black",
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    fontSize: 16,
+    color: "#333",
   },
   placeholder: {
-    color: "black",
+    color: "#999",
   },
   iconContainer: {
-    top: 10,
-    right: 10,
-  },
-  listContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",  // Allows items to wrap to the next line
-    justifyContent: "space-around",  // Distributes the items evenly in the row
-    width: "100%",
-    marginVertical: 5, // Adds vertical spacing between rows
-  },
-  iconContainer: {
-    paddingHorizontal: 10,
+    position: "absolute",
+    top: 15,
+    right: 15,
   },
   dateInputWrapper: {
-    flexDirection: "row",
+    
     alignItems: "center",
-    borderWidth: 0.5,
-    borderRadius: 10,
-    padding: 5,
+    justifyContent:"center",
+    marginBottom: 10,
+    marginTop:20,
+   
   },
   listContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-around",
-    width: "100%",
-    marginVertical: 5,
+    justifyContent: "space-evenly",
+    marginVertical: 10,
+    paddingHorizontal: 10,
   },
   machineItem: {
-    width: 100,
-    height: 120,
-    borderRadius: 13,
+    width: 110,
+    height: 130,
+    borderRadius: 15,
+    backgroundColor: "#007bff", // Vibrant blue for available machines
     alignItems: "center",
     justifyContent: "center",
-    margin:5,
-    marginLeft:11  ,
-    backgroundColor: '#1E90FF',  // Default blue for available machines
+    margin: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 6, // Adds depth and shadow for Android
   },
   machineName: {
-    color: "white",
-    fontSize: 14,
-    
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "600",
+    textAlign: "center",
+    marginVertical: 5,
   },
   machineStatus: {
-    color: "white",
-    fontSize: 12,
+    color: "#fff",
+    fontSize: 13,
+    fontWeight: "400",
+    textAlign: "center",
   },
   proceedBtn: {
-    backgroundColor: "#1E90FF",  // Blue button when active
-    padding: 15,
-    borderRadius: 10,
+    width:"75%",
+    backgroundColor: "#007bff", // Green button when active
+    paddingVertical: 15,
+    borderRadius: 12,
     alignItems: "center",
-    marginVertical: 10,
+    marginVertical: 20,
+    marginHorizontal: 40,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
     shadowRadius: 5,
-    elevation: 5,
+    elevation: 8, // Adds depth and shadow for Android
   },
   disabledBtn: {
-    backgroundColor: "#ccc", // Gray color for disabled button
+    backgroundColor: "#b0b0b0", // Softer gray for a disabled button
   },
   proceedBtnText: {
     fontSize: 18,
     color: "#fff",
     fontWeight: "bold",
+    textTransform: "uppercase",
   },
 });
+
 
 export default LocationComponent;

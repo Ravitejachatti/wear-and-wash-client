@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import RNPickerSelect from 'react-native-picker-select';
 import { Formik } from 'formik';
@@ -7,9 +7,10 @@ import { useNavigation } from '@react-navigation/native';
 import { theme } from '../theme';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { Api } from '../Api/Api';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { postRegister, postVerifyOtp } from '../Redux/Auth/action';
-
+import { getBasedOnLocation } from "../Redux/App/action";
+ 
 const validationSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
@@ -33,7 +34,36 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false); // Loading state
 
 
+    // Get centers data from Redux store
+    // const { centers, isLoading, isError } = useSelector((state) => state.app.centers);
+
+    useEffect(() => {
+      // Dispatch action to fetch centers based on location
+      dispatch(getBasedOnLocation());
+    }, [dispatch]);
+
+     // Get centers data from Redux store
+     const centers = useSelector((state) => state.app.centers);
+  
+    // if (isLoading) {
+    //   return <Text>Loading...</Text>;
+    // }
+  
+    // if (isError) {
+    //   return <p>Error loading centers.</p>;
+    // }
+    // console.log("center ",centers)
+
+      // Transform centers data to the format required by RNPickerSelect
+  const centerOptions = centers.map((center) => ({
+    label: center.name,   // Use the correct property names based on your API response
+    value: center.id || center.name,
+  }));
+  
+  
+
   const handleSubmit = (values) => {
+    // console.log("otpsent ",otpSent)
     setIsLoading(true);
     if (!otpSent) {
       // Initial Registration
@@ -41,8 +71,9 @@ const Register = () => {
       
         .then((res) => {
           if (res?.payload?.response?.data?.message) {
-             // console.log("register")
+             // // console.log("register")
             setErrorMessage(res?.payload?.response?.data?.message);
+            setIsLoading(false)
           } else if (res?.payload?.message === 'OTP sent to your email. Please verify to complete registration.') {
             setOtpSent(true);
             setIsLoading(false);
@@ -52,24 +83,26 @@ const Register = () => {
           }
         })
         .catch((err) => {
-          // console.log('error', err);
+          // // console.log('error', err);
         });
     } else {
       // OTP Verification
+      // console.log("verifyotp")
       setIsLoading(true);
       dispatch(postVerifyOtp({ name: userData.name, email: userData.email, password:userData.password, phone:userData.phone, gender:userData.gender, location:userData.location, role:userData.role, otp }))
         .then((res) => {
-          // console.log("res",res.payload.message)
+          // // console.log("res",res.payload.message)
           if (res?.payload?.message === 'Registration successful') {
             setIsLoading(false);
             navigation.replace('Login');
           } else {
             setErrorMessage('Invalid OTP');
+            setIsLoading(false);  
           }
 
         })
         .catch((err) => {
-          // console.log('error', err);
+          // // console.log('error', err);
           setErrorMessage('OTP verification failed');
         });
     }
@@ -155,22 +188,10 @@ const Register = () => {
 
                 <View style={styles.pickerWrapper}>
                   <RNPickerSelect
-                    onValueChange={(value) => setFieldValue('location', value)}
-                    placeholder={{ label: 'Select Location', value: null }}
+                    onValueChange={(value) => setFieldValue("location", value)}
+                    placeholder={{ label: "Select Location", value: null }}
                     value={values.location}
-                    items={[
-                      { label: 'MHP-1', value: 'MHP-1' },
-                      { label: 'MHP-2', value: 'MHP-2' },
-                      { label: 'MHP-3', value: 'MHP-3' },
-                      { label: 'AUB1-1', value: 'AUB1-1' },
-                      { label: 'AUB1-2', value: 'AUB1-2' },
-                      { label: 'AUB2-1', value: 'AUB2-1' },
-                      { label: 'AUB2-3', value: 'AUB2-3' },
-                      { label: 'SMT-1', value: 'SMT-1' },
-                      { label: 'SMT-2', value: 'SMT-2' },
-                      { label: 'MT-1', value: 'MT-1' },
-                      { label: 'MMT-2', value: 'MMT-2' },
-                    ]}
+                    items={centerOptions}  // Use the dynamic options here
                     style={pickerSelectStyles}
                   />
                 </View>

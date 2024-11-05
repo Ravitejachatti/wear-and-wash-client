@@ -2,8 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
 
 const ContactUs = () => {
-  const phoneNumber = '+916304662487'; // Full phone number with country code
-  const whatsappNumber = '916304662487'; // WhatsApp number with country code
+  const phoneNumber = '+919030856384'; // Full phone number with country code
+  const whatsappNumber = '919030856384'; // WhatsApp number with country code
 
   const handleWhatsApp = () => {
       const url = `whatsapp://send?text=Hello!&phone=${whatsappNumber}`;

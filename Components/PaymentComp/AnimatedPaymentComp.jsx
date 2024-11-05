@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { Animated, View, StyleSheet } from 'react-native';
-import PaymentComp from './PaymentComp'; // Assuming PaymentComp is in the same directory
-import { getData } from '../../Storage/getData'; // Ensure you have access to getData to fetch from AsyncStorage
+import PaymentComp from './PaymentComp';
+import { getData } from '../../Storage/getData';
 
 const AnimatedPaymentComp = ({ isVisible, onClose }) => {
-  const slideAnim = useRef(new Animated.Value(1000)).current; // Initial position off-screen
+  const slideAnim = useRef(new Animated.Value(1000)).current; // Initial off-screen position
   const [paymentData, setPaymentData] = useState({
     date: null,
     timeSlot: null,
@@ -38,38 +38,32 @@ const AnimatedPaymentComp = ({ isVisible, onClose }) => {
     };
 
     if (isVisible) {
-      // Fetch updated data and show the payment screen
+      // Fetch data and show the component
       fetchUserSelectedDetails();
-
-      // Animate the component sliding up
       Animated.timing(slideAnim, {
-        toValue: 0, // Slide to the top of the screen (visible)
-        duration: 500, // Animation duration in milliseconds
+        toValue: 0, // Slide up to become visible
+        duration: 500,
         useNativeDriver: true,
       }).start();
-
-      // Automatically close after 3 seconds
-      const autoCloseTimeout = setTimeout(() => {
-        onClose(); // Close the payment screen after the delay
-      }, 3000); // 3000 ms = 3 seconds
-
-      // Clean up the timeout when the component unmounts or `isVisible` changes
-      return () => clearTimeout(autoCloseTimeout);
+    } else {
+      // Hide the component
+      Animated.timing(slideAnim, {
+        toValue: 1000, // Slide down to hide
+        duration: 500,
+        useNativeDriver: true,
+      }).start();
     }
-  }, [isVisible, slideAnim, onClose]);
+  }, [isVisible, slideAnim]);
 
   return (
     <Animated.View
       style={[
         styles.animatedContainer,
-        {
-          transform: [{ translateY: slideAnim }], // Bind translateY to animated value
-        },
+        { transform: [{ translateY: slideAnim }] },
       ]}
     >
-      {/* Pass the updated data to PaymentComp */}
       <View style={styles.innerContainer}>
-        <PaymentComp paymentData={paymentData} />
+        <PaymentComp paymentData={paymentData} onVisibilityChange={onClose} />
       </View>
     </Animated.View>
   );
@@ -80,17 +74,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    height: '100%', // Full-screen height for the animated view
-    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent background
+    height: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999, // Ensure it's on top of other views
+    zIndex: 999,
   },
   innerContainer: {
     width: '100%',
     height: '100%',
     backgroundColor: 'white',
-    borderRadius: 0, // No rounded corners for full-screen
+    borderRadius: 0,
     overflow: 'hidden',
   },
 });

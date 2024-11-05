@@ -20,7 +20,7 @@ const Splash = () => {
         const token = await getData('token');
         const userId = await getData('userId') // Retrieve the token from async storage
         const parseUserId = JSON.parse(userId)
-        console.log("splash screen ",parseUserId)
+        // console.log("splash screen ",parseUserId)
         
 
         if (token) {
@@ -29,22 +29,22 @@ const Splash = () => {
           dispatch(getUserBookingSlot(parseUserId))
           .then(async (res) => {
             const bookings = res.payload;
-            console.log("All Bookings from API:", bookings);
+            // console.log("All Bookings from API:", bookings);
             
     
             // Use the utility function to filter future bookings
             const futureBookings = await countUserFutureBookings(bookings,userId);
-            // console.log("Future Bookings for the User:", futureBookings);
-            // console.log(futureBookings) 
-            console.log("splash screen ", futureBookings)
+            // // console.log("Future Bookings for the User:", futureBookings);
+            // // console.log(futureBookings) 
+            // console.log("splash screen ", futureBookings)
 
           if (futureBookings.length > 0) {
-            console.log("Home")
+            // console.log("Home")
             // Navigate to Home if future bookings exist
             navigation.replace('Main', { screen: 'Home' }); 
           } else {
             // Navigate to Location if no future bookings
-            console.log("location")
+            // console.log("location")
             navigation.replace('Main', { screen: 'Location' });   
           }})
         } else {

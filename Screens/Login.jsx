@@ -39,50 +39,14 @@ const Login = () => {
 
         if (res?.payload?.message === 'login success') {
           try {
-            // // Store user information locally
-            // await addData('userLocation', res?.payload?.location);
-            // await addData('userId', res?.payload?.id);
-            // await addData('email', res?.payload?.email);
-            // await addData('phone', res?.payload?.phone);
-            // await addData('name', res?.payload?.name);
-            // await addData('token', res?.payload?.token);
-            // const userIdFromStorage = await getData('userId');
-            // const userId = JSON.parse(userIdFromStorage);
-            
-            // // Fetch user bookings
-            // dispatch(getUserBookingSlot(userId))
-            // .then(async (res) => {
-            //   const bookings = res.payload;
-            //   // console.log("All Bookings from API:", bookings);
-      
-            //   // Use the utility function to filter future bookings
-            //   const Bookings = await countUserFutureBookings(bookings,userId)
-            //   // console.log("Future Bookings for the User:", futureBookings);
-            //   setFutureBookings(Bookings); 
-            //   console.log("login")
-
- 
-            //      // Conditional navigation based on future bookings
-            // //      console.log("Bookings ",Bookings)
-            // // if (Bookings.length === 0) {
-            // //   console.log("Navigating to Location Page");
-            // //   navigation.navigate('Location', { screen: 'Location' });  // Navigate to Location page
-            // // } else if (Bookings.length >= 1) {
-            // //   console.log("Navigating to Home Page");
-            // //   navigation.navigate('Main', { screen: 'Home' }); 
-            // // } 
-            //   })
-            //   .catch((err) => {
-            //     console.log("Error fetching bookings:", err);
-            //   });
             await login(res.payload);
           } catch (error) {
-            console.log('Error storing user data:', error);
+            // console.log('Error storing user data:', error);
           }
         }
       })
       .catch((err) => {
-        console.log("Login error:", err);
+        // console.log("Login error:", err);
       });
   };
 
@@ -199,7 +163,7 @@ const styles = StyleSheet.create({
   registerLink: {
     textAlign: 'center',
     color: 'gray',
-    marginTop: 20,
+    marginTop: 30,
     fontSize: 16,
   },
 });

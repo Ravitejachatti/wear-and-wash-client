@@ -7,7 +7,7 @@ import { getData } from '../../Storage/getData';
 import { removeItem } from '../../Storage/removeItem';
 import { useNavigation } from '@react-navigation/native';
 import { countUserFutureBookings } from '../../utils/bookingUtils';
-import Testing from '../../Screens/Testing';
+import SampleVideo from '../../Screens/SampleVideo';
 import MachineStart from '../MachineStart/MachineStart';
 
 
@@ -27,31 +27,31 @@ const HomeComp = () => {
             try {
                 // Fetch bookings
                 const storedUserId = await getData("userId");
-                // console.log(storedUserId)
+                // // console.log(storedUserId)
                 if (!storedUserId) {
                     // console.error("User ID not found");
                     return;
                 }
     
                 setUserId(JSON.parse(storedUserId));
-                // console.log("response from the home ",JSON.parse(storedUserId))
-                // // console.log("before")
+                // // console.log("response from the home ",JSON.parse(storedUserId))
+                // // // console.log("before")
                 const res = await dispatch(getUserBookingSlot(JSON.parse(storedUserId)));
                 
-                // // console.log("after")
+                // // // console.log("after")
     
                 // Get bookings for the current user
                 const bookings = res.payload;
-                // // console.log("bookings in the home")
-                // // console.log("Bookings:", bookings);
+                // // // console.log("bookings in the home")
+                // // // console.log("Bookings:", bookings);
     
                 // Count bookings for the current month
                 const userBookings = await countUserFutureBookings(bookings, JSON.parse(storedUserId));
-                // // console.log("User bookings in home:", userBookings);
+                // // // console.log("User bookings in home:", userBookings);
     
                 setfilteredBookings(userBookings); // Set actual bookings, not the count
                 setBookingCount(userBookings.length);
-                // // // console.log(filteredBookings.length)
+                // // // // console.log(filteredBookings.length)
                 setIsLoading(false);
             } catch (err) {
                 // console.error("Error fetching bookings:", err);
@@ -79,8 +79,8 @@ const HomeComp = () => {
 
     // Filter the bookings by matching userId with booking's userId
     const Bookings = store?.filter(booking => booking.userId._id === userId);
-    // // console.log('filtered Bookings',filteredBookings.length)
-    // console.log("bookings from the home ",filteredBookings)
+    // // // console.log('filtered Bookings',filteredBookings.length)
+    // // console.log("bookings from the home ",filteredBookings)
  
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -117,7 +117,7 @@ const HomeComp = () => {
             </View>
 
             <View style={styles.videoContainer}>
-              <Testing/>
+              <SampleVideo/>
             </View>
 
            
