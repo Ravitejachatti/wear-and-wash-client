@@ -21,6 +21,7 @@ const validationSchema = Yup.object().shape({
 });
 
 const Login = () => {
+  const [loading, setLoading] = useState(false); // Loading state
   const [errorMessage, setErrorMessage] = useState('');
   const [futureBookings,setFutureBookings] = useState(0)
   const { login } = useContext(AuthContext); // Use AuthContext
