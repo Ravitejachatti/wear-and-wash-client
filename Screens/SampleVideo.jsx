@@ -1,30 +1,25 @@
-import React, { useState, useRef }  from 'react'
-import { View, StyleSheet, Button,Text } from 'react-native';
+import React, { useRef } from 'react';
+import { View, StyleSheet, Text } from 'react-native';
 import { Video, ResizeMode } from 'expo-av';
 
 const SampleVideo = () => {
-    const video = useRef(null);
-    const [status, setStatus] = useState({});
+  const video = useRef(null);
+
   return (
     <View style={styles.container}>
-        <Text style={styles.textShow}>How to use</Text>
-    <Video
-      ref={video}
-      style={styles.video}
-      source={{
-        uri: 'https://d23dyxeqlo5psv.cloudfront.net/big_buck_bunny.mp4',
-      }}
-      useNativeControls
-      resizeMode={ResizeMode.CONTAIN}
-      
-      
-    />
-   
-  </View>
-  )
-}
+      <Text style={styles.textShow}>How to use</Text>
+      <Video
+        ref={video}
+        style={styles.video}
+        source={require('../assets/workingVideo.mp4')}
+        useNativeControls
+        resizeMode={ResizeMode.CONTAIN}
+      />
+    </View>
+  );
+};
 
-export default SampleVideo
+export default SampleVideo;
 
 const styles = StyleSheet.create({
   container: {
@@ -32,149 +27,70 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'white',
-    
     height: 250,
   },
-  textShow:{
+  textShow: {
     fontSize: 20,
     color: '#1E90FF',
-
   },
   video: {
     alignSelf: 'center',
     width: 280,
     height: 220,
   },
-  buttons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
 });
 
 
-// import { WebView } from 'react-native-webview';
-// import Constants from 'expo-constants';
-// import { StyleSheet } from 'react-native';
 
-// export default function App() {
-//   return (
-//     <WebView
-//       style={styles.container}
-//       source={{ uri: 'https://expo.dev' }}
-//     />
-//   );
-// }
+// import { useEvent } from 'expo';
+// import { useVideoPlayer, VideoView } from 'expo-video';
+// import { StyleSheet, View, Button } from 'react-native';
 
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     marginTop: Constants.statusBarHeight,
-//   },
-// });
+// const videoSource =
+//   'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
+// const SampleVideo = () => {
+//   const player = useVideoPlayer(videoSource, player => {
+//     player.loop = true;
+//     player.play();
+//   });
 
-// import React, { useEffect, useState } from "react";
-// import { View, StyleSheet, TextInput, TouchableOpacity, Platform } from "react-native";
-// import DateTimePicker from '@react-native-community/datetimepicker';
-// import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';  // Importing icons
-// import { fetchCurrentDate } from "../utils/getCurrentTime";  // Assuming this function exists
-
-// const DatePickerComponent = () => {
-//   const [date, setDate] = useState(null);
-//   const [show, setShow] = useState(false);
-//   const [formattedDate, setFormattedDate] = useState('');
-//   const [minimumDate, setMinimumDate] = useState(null);
-//   const [maximumDate, setMaximumDate] = useState(null);
-
-//   // Fetch current date once the component mounts
-//   useEffect(() => {
-//     const fetchInitialDate = async () => {
-//       const currentDate = await fetchCurrentDate();  // Fetch the current date
-//       const currentDateObj = new Date(currentDate);  // Convert to a Date object
-//       setDate(currentDateObj);
-
-//       // Set the minimum and maximum date for the DateTimePicker
-//       setMinimumDate(currentDateObj);
-//       const year = currentDateObj.getFullYear();
-//       const month = currentDateObj.getMonth();
-//       setMaximumDate(new Date(year, month + 1, 0));  // Last day of the current month
-
-//       // Set the formatted date
-//       const formatted = currentDateObj.toISOString().split('T')[0];
-//       setFormattedDate(formatted);
-//     };
-
-//     fetchInitialDate();
-//   }, []);
-
-//   const handleDateChange = (event, selectedDate) => {
-//     const currentDate = selectedDate || date;
-//     setShow(Platform.OS === 'ios');
-//     setDate(currentDate);
-
-//     const formatted = currentDate.toISOString().split('T')[0];
-//     setFormattedDate(formatted);
-//   };
-
-//   const showDatepicker = () => {
-//     setShow(true);
-//   };
+//   const { isPlaying } = useEvent(player, 'playingChange', { isPlaying: player.playing });
 
 //   return (
-//     <View style={styles.main}>
-//       <View style={styles.dateInputWrapper}>
-//         <TouchableOpacity style={styles.iconContainer} onPress={showDatepicker}>
-//           <FontAwesome5 name="calendar-alt" size={24} color="gray" />
-//         </TouchableOpacity>
-//         <TextInput
-//           style={styles.input}
-//           placeholder="Select Date"
-//           value={formattedDate}
-//           onFocus={showDatepicker}
-//           onChangeText={setFormattedDate} // Allow manual entry of date
+//     <View style={styles.contentContainer}>
+//       <VideoView style={styles.video} player={player} allowsFullscreen allowsPictureInPicture />
+//       <View style={styles.controlsContainer}>
+//         <Button
+//           title={isPlaying ? 'Pause' : 'Play'}
+//           onPress={() => {
+//             if (isPlaying) {
+//               player.pause();
+//             } else {
+//               player.play();
+//             }
+//           }}
 //         />
-//         {show && minimumDate && maximumDate && (
-//           <DateTimePicker
-//             value={date}
-//             mode="date"
-//             display="default"
-//             onChange={handleDateChange}
-//             minimumDate={minimumDate}  // Set the minimum date to current date
-//             maximumDate={maximumDate}  // Set the maximum date to the last day of the current month
-//           />
-//         )}
 //       </View>
 //     </View>
 //   );
-// };
+// }
 
+// export default SampleVideo
 // const styles = StyleSheet.create({
-//   main: {
-//     padding: 20,
-//     justifyContent: 'center',
-//   },
-//   dateInputWrapper: {
-//     flexDirection: "row",
-//     alignItems: "center",
-//     borderWidth: 0.5,
-//     borderRadius: 10,
-//     padding: 5,
-//   },
-//   input: {
-//     paddingVertical: 15,
-//     paddingHorizontal: 5,
-//     color: "black",
-//     fontSize: 15,
-//     borderColor: "black",
+//   contentContainer: {
 //     flex: 1,
+//     padding: 10,
+//     alignItems: 'center',
+//     justifyContent: 'center',
+//     paddingHorizontal: 50,
 //   },
-//   iconContainer: {
-//     paddingHorizontal: 10,
-//   }
+//   video: {
+//     width: 350,
+//     height: 275,
+//   },
+//   controlsContainer: {
+//     padding: 10,
+//   },
 // });
-
-// export default DatePickerComponent;
-
-
 
