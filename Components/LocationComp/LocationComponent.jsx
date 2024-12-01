@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, StyleSheet, TextInput, TouchableOpacity, FlatList, Platform, ActivityIndicator, Alert, Text } from "react-native";
+import { View, StyleSheet, TextInput, TouchableOpacity, FlatList, Platform, ActivityIndicator, Alert, Text, Dimensions } from "react-native";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';  // Importing icons
 import { useDispatch, useSelector } from "react-redux";
@@ -13,8 +13,10 @@ import { countUserFutureBookings } from "../../utils/bookingUtils";
 import { getUserBookingsForCurrentMonth } from "../../utils/futureBookingUtils"
 import moment from "moment-timezone";
 import Testing from "../../Screens/Testing";
+const screenWidth = Dimensions.get("window").width;
 
 const LocationComponent = () => {
+  
   const dispatch = useDispatch();
   const [fetchedcurrentdate, setFetchedcurrentdate] = useState( moment(new Date()).tz('Asia/Kolkata').format('YYYY-MM-DD'));
   const [date, setDate] = useState(new Date()); // Default date is the current date
@@ -181,7 +183,7 @@ const LocationComponent = () => {
         setFutureBookingsCount(userBookings.length);
         
 
-        const CurrentMonth = getUserBookingsForCurrentMonth(bookings, userId);
+        const CurrentMonth = getUserBookingsForCurrentMonth(bookings, userId); 
         setCurrentMonthBooking(CurrentMonth.length);
         // // console.log("testing")
 
@@ -382,19 +384,19 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-evenly",
-    marginVertical: 10,
+    flexWrap: "wrap", // Allow items to wrap to the next line
+    justifyContent: "space-between", // Distribute items evenly
     paddingHorizontal: 10,
+    width: "100%", // Take full width of the screen
   },
   machineItem: {
-    width: 110,
-    height: 130,
+    flexBasis: "30%", // Each item takes 30% of the container width
+    margin: 5, // Add spacing between items
+    height: screenWidth * 0.3, // Make height proportional to screen width
     borderRadius: 15,
     backgroundColor: "#007bff", // Vibrant blue for available machines
     alignItems: "center",
     justifyContent: "center",
-    margin: 8,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
@@ -406,7 +408,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     textAlign: "center",
-    marginVertical: 5,
+    marginVertical:5,
   },
   machineStatus: {
     color: "#fff",

@@ -16,6 +16,10 @@
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "android":{
+        "serviceAccountKeyPath":"C:/Users/lenovo/Documents/raviteja/full stack develper/expo_app/wearnwashbackend-390793137d2d.json"
+      }
+    }
   }
 }

@@ -52,6 +52,7 @@ const HomeComp = () => {
                 setfilteredBookings(userBookings); // Set actual bookings, not the count
                 setBookingCount(userBookings.length);
                 // // // // console.log(filteredBookings.length)
+                console.log("filteredBookings1 ",filteredBookings)  
                 setIsLoading(false);
             } catch (err) {
                 // console.error("Error fetching bookings:", err);

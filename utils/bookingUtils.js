@@ -46,6 +46,8 @@ export const countUserFutureBookings = async (bookings, userId) => {
     const isOngoingBooking =
       startDateTime <= currentDate && endDateTime > currentDate;
 
+    const isPending = booking.status == "confirmed"
+
     // Log for debugging
     // // // console.log({
     //   bookingDate,
@@ -57,7 +59,7 @@ export const countUserFutureBookings = async (bookings, userId) => {
     // });
 
     // Return true if both user matches and the booking is either in the future or ongoing
-    return isUserMatch && (isFutureBooking || isOngoingBooking);
+    return isUserMatch && isPending && (isFutureBooking || isOngoingBooking);  
   });
 
   // console.log("userFutureBookings:", userFutureBookings);

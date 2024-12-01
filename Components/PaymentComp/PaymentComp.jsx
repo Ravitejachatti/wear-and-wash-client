@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { bookingSlot, getBasedOnLocation, getUserBookingSlot } from '../../Redux/App/action';
 import { useNavigation } from '@react-navigation/native';
@@ -10,10 +10,17 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
+  const [upiId, setUpiId] = useState(''); // State for UPI ID
+  const [error, setError] = useState(''); // State for validation error
 
   const handleSubmit = async () => {
+    if (!upiId.trim()) {
+      setError('UPI ID is required.');
+      return;
+    }
+
     setIsLoading(true);
-    const payload = { userId, centerId, machineId, timeSlot, date };
+    const payload = { userId, centerId, machineId, timeSlot, date, upiId };
 
     try {
       const response = await dispatch(bookingSlot(payload));
@@ -48,6 +55,16 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
         {date && <Text style={styles.heading}>Date: <Text style={styles.value}>{date}</Text></Text>}
         {timeSlot && <Text style={styles.heading}>Time Slot: <Text style={styles.value}>{timeSlot}</Text></Text>}
         {machineName && <Text style={styles.heading}>Machine: <Text style={styles.value}>{machineName}</Text></Text>}
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your UPI ID"
+          value={upiId}
+          onChangeText={(text) => {
+            setUpiId(text);
+            setError(''); // Clear error on input
+          }}
+        />
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
       </View>
 
       <TouchableOpacity onPress={handleSubmit} style={[styles.btn, isLoading && styles.disabledBtn]} disabled={isLoading}>
@@ -101,6 +118,21 @@ const styles = StyleSheet.create({
   value: {
     fontWeight: '400',
     color: '#666',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    fontSize: 16,
+    width: '100%',
+    marginTop: 15,
+    marginBottom: 10,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 5,
   },
   btn: {
     backgroundColor: theme.color.secondary,
