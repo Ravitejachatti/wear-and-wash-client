@@ -213,9 +213,11 @@ function MainStack() {
         const role = JSON.parse(userRoleFromStorage);
 
         setUserRole(role);
+        console.log("userid",userIdFromStorage)
 
         const res = await dispatch(getUserBookingSlot(userId));
         const bookings = res.payload;
+        // console.log("bookings",bookings)
         const Bookings = await countUserFutureBookings(bookings, userId);
 
         setInitialRoute(Bookings.length > 0 ? "Home" : "Location");

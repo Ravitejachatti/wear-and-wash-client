@@ -127,6 +127,10 @@ const HomeComp = () => {
 
             <MachineStart value={filteredBookings}/>
 
+            <TouchableOpacity onPress={() => navigation.navigate('ContactUs', {filteredBookings})} style={styles.helpButton}>
+                <Text style={styles.buttonText}>Help !</Text>
+                </TouchableOpacity>
+
             {/* <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
                 <Text style={styles.buttonText}>Logout</Text>
             </TouchableOpacity> */}
@@ -190,6 +194,18 @@ const styles = StyleSheet.create({
         
         backgroundColor: 'blue',
         marginBottom: '20',
+    },
+    helpButton: {
+        backgroundColor: 'orange', // Blue color for button
+        padding: 15,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 20,
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: 'bold',
     },
  
  

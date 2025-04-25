@@ -1,0 +1,78 @@
+{
+  "project_info": {
+    "project_number": "700699672106",
+    "project_id": "wearnwash-15bff",
+    "storage_bucket": "wearnwash-15bff.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:700699672106:android:f3e4198ce7b114c9520d53",
+        "android_client_info": {
+          "package_name": "com.raviteja2024.WearNWash"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "700699672106-1iva116c0ql54m7rnjf2dt82tk0prm5l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.raviteja2024.WearNWash",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "700699672106-df1mvhui64eq59f0ctj80gal0sbh2t6t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.raviteja2024.WearNWash",
+            "certificate_hash": "fd825064c70fdad43845238acacc0d96fb16091f"
+          }
+        },
+        {
+          "client_id": "700699672106-fmda6njgthvr1aqokadfjdg6gdf2tgju.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.raviteja2024.WearNWash",
+            "certificate_hash": "c46076bc3fc7b5a94d959882a2e8c870542076ab"
+          }
+        },
+        {
+          "client_id": "700699672106-mi94b8bbn39h7qppcs8rk7e2n6irn7qe.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.raviteja2024.WearNWash",
+            "certificate_hash": "63928ee2f91517129c0440f67b4392c2af5740e2"
+          }
+        },
+        {
+          "client_id": "700699672106-sophmcs4qqamg03q8mprbrv3cs1subrv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCXrEvIkmvDvLC6f2zhzV2uREHpksR9u28"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "700699672106-sophmcs4qqamg03q8mprbrv3cs1subrv.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "700699672106-ole8b3ajd288cvj9u02s36alnheh7ee4.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.raviteja2024.WearNWash"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

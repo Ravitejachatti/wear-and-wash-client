@@ -95,14 +95,14 @@ const LocationComponent = () => {
 
   // Ensure that we only try to filter slots after the current date is set
   useEffect(() => {
-    if (fetchedcurrentdate) {
+    if (selectedDate) {
       filterAvailableSlots();
     }
-  }, [fetchedcurrentdate, date]);
+  }, [selectedDate]);
 
   const filterAvailableSlots = async () => {
     const currentDate = new Date(fetchedcurrentdate);  // Use the fetched current date
-    const selectedDateValue = new Date(fetchedcurrentdate);  // Use the selected date from the state
+    const selectedDateValue = new Date(selectedDate); // ✅ use the actual selected date from state  // Use the selected date from the state
 
     let filteredSlots = [];
 
@@ -125,21 +125,25 @@ const LocationComponent = () => {
     setAvailableSlots(filteredSlots);
   };
 
+  
+
   const isSlotAvailable = async (slot) => {
-    const [startTime] = slot.value.split("-");
-    const fetchedcurrentdateslot = new Date(fetchedcurrentdate)
-    const currentHour = fetchedcurrentdateslot.getHours();
-    const currentMinute = fetchedcurrentdateslot.getMinutes();
-    const [slotHour, slotMinute] = startTime.split(":");
-
-    const slotHourInt = parseInt(slotHour, 10);
-    const slotMinuteInt = parseInt(slotMinute, 10);
-
-    // Filter based on whether the slot is in the future for today
-    return (
-      slotHourInt > currentHour || 
-      (slotHourInt === currentHour && slotMinuteInt > currentMinute)
-    );
+    const [slotHour, slotMinute] = slot.value.split("-")[0].split(":").map(Number); // get start time
+  
+    const now = moment.tz(new Date(), "Asia/Kolkata"); // current time in IST
+    const selectedDateMoment = moment.tz(selectedDate, "YYYY-MM-DD", "Asia/Kolkata");
+    console.log(selectedDate)
+  
+    const isToday = now.isSame(selectedDateMoment, 'day');
+  
+    // Create full slot time in selected date
+    const slotDateTime = selectedDateMoment.clone().set({ hour: slotHour, minute: slotMinute, second: 0, millisecond: 0 });
+  
+    if (isToday) {
+      return slotDateTime.isAfter(now); // Only show future time slots
+    }
+  
+    return true; // All slots allowed for future dates
   };
 
   // const onChange = (event, selectedDate) => {
@@ -231,7 +235,7 @@ const LocationComponent = () => {
         await addData("timeSlot", selectedTimeSlot);
         await addData("locationId", filterLocation[0]?._id);
 
-        alert("Data stored successfully!");
+        
         setShowPayment(true);
       } catch (error) {
         alert("Error storing data. Please try again.");

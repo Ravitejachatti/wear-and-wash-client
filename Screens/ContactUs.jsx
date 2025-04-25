@@ -1,7 +1,15 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Linking, Alert } from 'react-native';
+import { useRoute } from '@react-navigation/native';
+import { Api } from '../Api/Api';
+
 
 const ContactUs = () => {
+  const route = useRoute();
+  const filteredBookings = route.params?.filteredBookings || [];
+  const machineId = filteredBookings.length > 0 ? filteredBookings[0].machineId._id : null;
+
+
   const phoneNumber = '+919030856384'; // Full phone number with country code
   const whatsappNumber = '919030856384'; // WhatsApp number with country code
 
@@ -16,6 +24,31 @@ const ContactUs = () => {
         Linking.openURL(url).catch(err => {
             Alert.alert('Error', 'Unable to make a phone call.');
         });
+    };
+
+    const handlePreviousCall = async () => {
+        if (!machineId) {
+            Alert.alert('Error', 'No machine ID found.');
+            return;
+        }
+    
+        try {
+            const response = await fetch(`${Api}/api/bookings/getdetails/lastused/${machineId}`);
+            const data = await response.json();
+    
+            if (response.ok && data.phone) {
+                const phoneNumber = data.phone;
+                const url = `tel:${phoneNumber}`;
+                Linking.openURL(url).catch(err => {
+                    Alert.alert('Error', 'Unable to make a phone call.');
+                });
+            } else {
+                Alert.alert('Error', 'No previous user found for this machine.');
+            }
+        } catch (error) {
+            console.error("Error fetching last used person's phone:", error);
+            Alert.alert('Error', 'Could not retrieve previous user.');
+        }
     };
 
     return (
@@ -40,6 +73,14 @@ const ContactUs = () => {
 
             <TouchableOpacity style={styles.button} onPress={handlePhoneCall}>
                 <Text style={styles.buttonText}>Call Us</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+                style={[styles.buttonPrevious, filteredBookings.length === 0 && styles.disabledButton]}
+                onPress={handlePreviousCall}
+                disabled={filteredBookings.length === 0}
+            >
+                <Text style={styles.buttonText}>Call Previous</Text>    
             </TouchableOpacity>
         </View>
     );
@@ -80,10 +121,21 @@ const styles = StyleSheet.create({
       alignItems: 'center',
       marginVertical: 10,
   },
+  buttonPrevious: {
+    backgroundColor: '#FFA500', // iOS default blue color
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginVertical: 10,
+},
     buttonText: {
         fontSize: 18,
         color: '#fff',
         fontWeight: 'bold',
+    },
+    disabledButton: {
+        backgroundColor: 'gray',  // Disabled color
+        opacity: 0.6,             // Reduced opacity
     },
 });
 

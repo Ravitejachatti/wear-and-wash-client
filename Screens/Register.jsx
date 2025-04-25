@@ -1,110 +1,178 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { useNavigation, CommonActions } from '@react-navigation/native';
 import RNPickerSelect from 'react-native-picker-select';
+import { useDispatch, useSelector } from 'react-redux';
 import { Formik } from 'formik';
 import * as Yup from 'yup';
-import { useNavigation } from '@react-navigation/native';
-import { theme } from '../theme';
+import auth from '@react-native-firebase/auth';
+import FeatherIcon from 'react-native-vector-icons/Feather';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { Api } from '../Api/Api';
-import { useDispatch, useSelector } from 'react-redux';
-import { postRegister, postVerifyOtp } from '../Redux/Auth/action';
-import { getBasedOnLocation } from "../Redux/App/action";
- 
+import axios from "axios";
+
+import { getBasedOnLocation } from '../Redux/App/action';
+import { postRegister } from '../Redux/Auth/action';
+import { AuthContext } from '../Components/Config/AuthContext';
+import { theme } from '../theme';
+import {Api} from '../Api/Api'
+
+
 const validationSchema = Yup.object().shape({
   name: Yup.string().required('Name is required'),
   email: Yup.string().email('Invalid email').required('Email is required'),
-  phone: Yup.string().matches(/^[0-9]+$/, 'Phone number must be numeric').required('Phone is required'),
   password: Yup.string().min(6, 'Password too short').required('Password is required'),
   gender: Yup.string().required('Gender is required'),
   location: Yup.string().required('Location is required'),
   otp: Yup.string().min(6, 'OTP must be 6 digits').when('otpSent', {
     is: true,
     then: Yup.string().required('OTP is required'),
-  })
+  }),
 });
 
 const Register = () => {
   const dispatch = useDispatch();
-  const [otpSent, setOtpSent] = useState(false); // Track OTP status
-  const [errorMessage, setErrorMessage] = useState(null);
-  const [otp, setOtp] = useState('');
-  const [userData, setUserData] = useState(null); // Store user data after initial registration
   const navigation = useNavigation();
-  const [isLoading, setIsLoading] = useState(false); // Loading state
+  const { login, isAuthenticated } = useContext(AuthContext);
 
+  const centers = useSelector((state) => state.app.centers);
 
-    // Get centers data from Redux store
-    // const { centers, isLoading, isError } = useSelector((state) => state.app.centers);
+  const [otpSent, setOtpSent] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(null);
+  const [userData, setUserData] = useState(null);
+  const [otp, setOtp] = useState('');
+  const [verificationId, setVerificationId] = useState(null);
+  const [resendTimer, setResendTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-    useEffect(() => {
-      // Dispatch action to fetch centers based on location
-      dispatch(getBasedOnLocation());
-    }, [dispatch]);
+  useEffect(() => {
+    dispatch(getBasedOnLocation());
+  }, [dispatch]);
 
-     // Get centers data from Redux store
-     const centers = useSelector((state) => state.app.centers);
-  
-    // if (isLoading) {
-    //   return <Text>Loading...</Text>;
-    // }
-  
-    // if (isError) {
-    //   return <p>Error loading centers.</p>;
-    // }
-    // console.log("center ",centers)
+  useEffect(() => {
+    console.log("isAuthenticated", isAuthenticated);
+  }, [isAuthenticated]);
 
-      // Transform centers data to the format required by RNPickerSelect
+  useEffect(() => {
+    let timer;
+    if (otpSent && resendTimer > 0) {
+      timer = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev === 1) setCanResend(true);
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpSent, resendTimer]);
+
+  // Handle auto-verification login from Firebase
+useEffect(() => {
+  const unsubscribe = auth().onAuthStateChanged(async (user) => {
+    if (user && otpSent && userData) {
+      console.log('Auto-login detected via Firebase:', user.phoneNumber);
+      try {
+        const res = await dispatch(postRegister(userData));
+        const userPayload = res.payload.user || res.payload;
+
+        if (res?.payload?.message === 'Registration successful') {
+          login(userPayload);
+          navigation.dispatch(
+            CommonActions.reset({
+              index: 0,
+              routes: [{ name: 'Main', params: { screen: 'Location' } }],
+            })
+          );
+        } else {
+          setErrorMessage('Registration failed after auto-verification.');
+        }
+      } catch (err) {
+        console.error('Auto-verification registration error:', err);
+        setErrorMessage('Something went wrong during automatic registration.');
+      }
+    }
+  });
+
+  return () => unsubscribe();
+}, [otpSent, userData]);
+
   const centerOptions = centers.map((center) => ({
-    label: center.name,   // Use the correct property names based on your API response
+    label: center.name,
     value: center.id || center.name,
   }));
-  
-  
 
-  const handleSubmit = (values) => {
-    // console.log("otpsent ",otpSent)
+  const handleSendOTP = async (values) => {
+    try {
+      const res =  await axios.post(`${Api}/api/user/check-phone`, { phone: values.phone });
+
+      if (res.data.exists) {
+        setErrorMessage('Phone number is already registered.');
+        setIsLoading(false);
+        return;
+      }
+      const confirmation = await auth().signInWithPhoneNumber(values.phone);
+      setVerificationId(confirmation.verificationId);
+      setOtpSent(true);
+      setUserData(values);
+      setErrorMessage('');
+    } catch (error) {
+      console.error('OTP Send Error:', error);
+      setErrorMessage('Failed to send OTP. Please check your phone number.');
+    }
+    setIsLoading(false);
+  };
+
+  const handleVerifyOTP = async () => {
+    try {
+      const credential = auth.PhoneAuthProvider.credential(verificationId, otp);
+      await auth().signInWithCredential(credential);
+
+      console.log("otp verified")
+
+      const res = await dispatch(postRegister(userData));
+      const userPayload = res.payload.user || res.payload;
+      console.log("userPayload", userPayload)
+
+      if (res?.payload?.message === 'Registration successful') {
+      login(userPayload);
+      // navigation.replace('Main', { screen: 'Location' });
+      console.log("isAuthenticated", isAuthenticated);
+        
+      } else {
+        setErrorMessage('Invalid OTP');
+      }
+    } catch (error) {
+      console.error('OTP Verification Error:', error);
+      
+      setErrorMessage('OTP verification failed. Please try again.');
+    }
+    setIsLoading(false);
+  };
+
+  const handleResendOTP = async () => {
+    if (!canResend) return;
+
+    setIsLoading(true);
+    try {
+      const confirmation = await auth().signInWithPhoneNumber(userData.phone);
+      setVerificationId(confirmation.verificationId);
+      setResendTimer(60);
+      setCanResend(false);
+      setErrorMessage('New OTP sent successfully!');
+    } catch (error) {
+      console.error('Resend OTP Error:', error);
+      setErrorMessage('Failed to resend OTP. Please try again.');
+    }
+    setIsLoading(false);
+  };
+
+  const handleSubmit = async (values) => {
     setIsLoading(true);
     if (!otpSent) {
-      // Initial Registration
-      dispatch(postRegister(values))
-      
-        .then((res) => {
-          if (res?.payload?.response?.data?.message) {
-             // // console.log("register")
-            setErrorMessage(res?.payload?.response?.data?.message);
-            setIsLoading(false)
-          } else if (res?.payload?.message === 'OTP sent to your email. Please verify to complete registration.') {
-            setOtpSent(true);
-            setIsLoading(false);
-            setUserData(values); // Save the user data for OTP verification
-            setErrorMessage(''); // Clear previous errors
-            
-          }
-        })
-        .catch((err) => {
-          // // console.log('error', err);
-        });
+      await handleSendOTP(values);
     } else {
-      // OTP Verification
-      // console.log("verifyotp")
-      setIsLoading(true);
-      dispatch(postVerifyOtp({ name: userData.name, email: userData.email, password:userData.password, phone:userData.phone, gender:userData.gender, location:userData.location, role:userData.role, otp }))
-        .then((res) => {
-          // // console.log("res",res.payload.message)
-          if (res?.payload?.message === 'Registration successful') {
-            setIsLoading(false);
-            navigation.replace('Login');
-          } else {
-            setErrorMessage('Invalid OTP');
-            setIsLoading(false);  
-          }
-
-        })
-        .catch((err) => {
-          // // console.log('error', err);
-          setErrorMessage('OTP verification failed');
-        });
+      await handleVerifyOTP();
     }
   };
 
@@ -117,58 +185,39 @@ const Register = () => {
       >
         {({ values, handleChange, handleBlur, handleSubmit, errors, touched, setFieldValue }) => (
           <View style={styles.inputContainer}>
-            <Text style={styles.errorMessage}>{errorMessage}</Text>
+            {errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> : null}
 
             {!otpSent ? (
               <>
-                <View style={styles.inputWrapper}>
-                  <Icon name="user" size={20} color="gray" style={styles.icon} />
-                  <TextInput
-                    style={styles.input}
-                    value={values.name}
-                    onChangeText={handleChange('name')}
-                    onBlur={handleBlur('name')}
-                    placeholder="Name"
-                  />
-                </View>
+                <FormInput icon="user" placeholder="Name" value={values.name} onChangeText={handleChange('name')} onBlur={handleBlur('name')} />
                 {touched.name && errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
 
-                <View style={styles.inputWrapper}>
-                  <Icon name="envelope" size={20} color="gray" style={styles.icon} />
-                  <TextInput
-                    keyboardType="email-address"
-                    style={styles.input}
-                    value={values.email}
-                    onChangeText={handleChange('email')}
-                    onBlur={handleBlur('email')}
-                    placeholder="Email"
-                  />
-                </View>
+                <FormInput icon="envelope" placeholder="Email" keyboardType="email-address" value={values.email} onChangeText={handleChange('email')} onBlur={handleBlur('email')} />
                 {touched.email && errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
-                <View style={styles.inputWrapper}>
-                  <Icon name="phone" size={20} color="gray" style={styles.icon} />
-                  <TextInput
-                    keyboardType="numeric"
-                    style={styles.input}
-                    value={values.phone}
-                    onChangeText={handleChange('phone')}
-                    onBlur={handleBlur('phone')}
-                    placeholder="Phone"
-                  />
-                </View>
+                <FormInput icon="phone" placeholder=" Phone" keyboardType="phone-pad"
+                  value={values.phone}
+                  onChangeText={(text) => {
+                    const formatted = text.startsWith('+') ? text : '+91' + text.replace(/\D/g, '');
+                    handleChange('phone')(formatted);
+                  }}
+                  onBlur={handleBlur('phone')}
+                />
                 {touched.phone && errors.phone && <Text style={styles.errorText}>{errors.phone}</Text>}
 
                 <View style={styles.inputWrapper}>
-                  <Icon name="lock" size={20} color="gray" style={styles.icon} />
+                  <FeatherIcon name="lock" size={20} color="gray" style={styles.icon} />
                   <TextInput
                     style={styles.input}
                     value={values.password}
                     onChangeText={handleChange('password')}
                     onBlur={handleBlur('password')}
                     placeholder="Password"
-                    secureTextEntry
+                    secureTextEntry={!showPassword}
                   />
+                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+                    <FeatherIcon name={showPassword ? 'eye' : 'eye-off'} size={20} color="gray" />
+                  </TouchableOpacity>
                 </View>
                 {touched.password && errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
@@ -177,10 +226,7 @@ const Register = () => {
                     onValueChange={(value) => setFieldValue('gender', value)}
                     placeholder={{ label: 'Select Gender', value: null }}
                     value={values.gender}
-                    items={[
-                      { label: 'Male', value: 'Male' },
-                      { label: 'Female', value: 'Female' },
-                    ]}
+                    items={[{ label: 'Male', value: 'Male' }, { label: 'Female', value: 'Female' }]}
                     style={pickerSelectStyles}
                   />
                 </View>
@@ -188,35 +234,31 @@ const Register = () => {
 
                 <View style={styles.pickerWrapper}>
                   <RNPickerSelect
-                    onValueChange={(value) => setFieldValue("location", value)}
-                    placeholder={{ label: "Select Location", value: null }}
+                    onValueChange={(value) => setFieldValue('location', value)}
+                    placeholder={{ label: 'Select Location', value: null }}
                     value={values.location}
-                    items={centerOptions}  // Use the dynamic options here
+                    items={centerOptions}
                     style={pickerSelectStyles}
                   />
                 </View>
                 {touched.location && errors.location && <Text style={styles.errorText}>{errors.location}</Text>}
               </>
             ) : (
-              <View style={styles.inputWrapper}>
-                <Icon name="lock" size={20} color="gray" style={styles.icon} />
-                <TextInput
-                  style={styles.input}
-                  value={otp}
-                  onChangeText={setOtp}
-                  placeholder="Enter OTP"
-                  keyboardType="numeric"
-                />
-              </View>
+              <>
+                <FormInput icon="lock" placeholder="Enter OTP" keyboardType="numeric" value={otp} onChangeText={setOtp} />
+                <TouchableOpacity
+                  disabled={!canResend}
+                  onPress={handleResendOTP}
+                  style={[styles.resendBtn, { backgroundColor: canResend ? '#1e90ff' : 'gray', opacity: canResend ? 1 : 0.5 }]}
+                >
+                  <Text style={styles.btnText}>{canResend ? 'Resend OTP' : `Resend in ${resendTimer}s`}</Text>
+                </TouchableOpacity>
+              </>
             )}
 
             <TouchableOpacity onPress={handleSubmit} style={styles.btn}>
-            {isLoading ? ( // Show loading indicator when isLoading is true
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (<Text style={styles.btnText}>{otpSent ? 'Verify OTP' : 'Register'}</Text>)}
-              
+              {isLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.btnText}>{otpSent ? 'Verify OTP' : 'Register'}</Text>}
             </TouchableOpacity>
-            
           </View>
         )}
       </Formik>
@@ -224,76 +266,31 @@ const Register = () => {
   );
 };
 
-export default Register;
+const FormInput = ({ icon, ...props }) => (
+  <View style={styles.inputWrapper}>
+    <Icon name={icon} size={20} color="gray" style={styles.icon} />
+    <TextInput style={styles.input} {...props} />
+  </View>
+);
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    padding: 16,
-  },
-  inputContainer: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-    marginBottom: 10,
-  },
-  input: {
-    flex: 1,
-    padding: 10,
-    fontSize: 16,
-  },
-  pickerWrapper: {
-    marginVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  icon: {
-    marginRight: 10,
-  },
-  btn: {
-    backgroundColor: '#1e90ff',
-    padding: 15,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  btnText: {
-    color: '#fff',
-    fontSize: 16,
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 12,
-  },
-  errorMessage: {
-    color: 'red',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
+  scrollView: { flexGrow: 1, justifyContent: 'center', padding: 16 },
+  inputContainer: { flex: 1, justifyContent: 'center' },
+  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: '#ccc', marginVertical: 10 },
+  icon: { marginRight: 10 },
+  input: { flex: 1, padding: 10, fontSize: 16 },
+  eyeIcon: { padding: 5 },
+  pickerWrapper: { marginVertical: 10, borderBottomWidth: 1, borderBottomColor: '#ccc' },
+  btn: { backgroundColor: '#1e90ff', padding: 15, borderRadius: 5, alignItems: 'center', marginTop: 10 },
+  btnText: { color: '#fff', fontSize: 16 },
+  errorText: { color: 'red', fontSize: 12 },
+  errorMessage: { color: 'red', textAlign: 'center', marginBottom: 10 },
+  resendBtn: { marginTop: 10, marginBottom: 20, padding: 10, borderRadius: 5, alignItems: 'center' },
 });
 
 const pickerSelectStyles = {
-  inputIOS: {
-    fontSize: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: 'gray',
-    borderRadius: 4,
-    color: 'black',
-  },
-  inputAndroid: {
-    fontSize: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: 'gray',
-    borderRadius: 4,
-    color: 'black',
-  },
+  inputIOS: { fontSize: 16, paddingVertical: 10, paddingHorizontal: 10, borderWidth: 1, borderColor: 'gray', borderRadius: 4, color: 'black' },
+  inputAndroid: { fontSize: 16, paddingVertical: 10, paddingHorizontal: 10, borderWidth: 1, borderColor: 'gray', borderRadius: 4, color: 'black' },
 };
+
+export default Register;

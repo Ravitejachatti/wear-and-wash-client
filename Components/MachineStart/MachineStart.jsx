@@ -25,15 +25,15 @@ const MachineStart = ({ value }) => {
 
     const deviceTime = new Date(); // Get the current date and time from the device
 
-    if (!areDateAndTimeEqual(deviceTime, serverTime)) {
-      Alert.alert(
-        'Time Mismatch',
-        'Your device date and time settings do not match the server. Please change your Date & Time to IST.',
-        [
-          { text: 'OK', onPress: () => BackHandler.exitApp() }, // Exit the application
-        ]
-      );
-    }
+    // if (!areDateAndTimeEqual(deviceTime, serverTime)) {
+    //   Alert.alert(
+    //     'Time Mismatch',
+    //     'Your device date and time settings do not match the server. Please change your Date & Time to IST.',
+    //     [
+    //       { text: 'OK', onPress: () => BackHandler.exitApp() }, // Exit the application
+    //     ]
+    //   );
+    // }
   }
 
   // Function to check whether the current time falls within the first 5 minutes of the start time

@@ -72,19 +72,19 @@ export const checkDateTimeWithServer = async (setTimeMismatch) => {
   const deviceTime = new Date();
   const isTimeMatched = areDateAndTimeEqual(deviceTime, serverTime);
 
-  if (!isTimeMatched) {
-    if (Platform.OS === 'android') {
-      Alert.alert(
-        'Time Mismatch',
-        'Your device date and time settings do not match the server. Please set your Date & Time to IST.',
-        [{ text: 'OK', onPress: exitApp }]
-      );
-    } else {
-      setTimeMismatch(true); // Show lock screen on iOS instead of trying to exit
-    }
-  } else {
-    setTimeMismatch(false); // Remove lock screen if time matches
-  }
+  // if (!isTimeMatched) {
+  //   if (Platform.OS === 'android') {
+  //     Alert.alert(
+  //       'Time Mismatch',
+  //       'Your device date and time settings do not match the server. Please set your Date & Time to IST.',
+  //       [{ text: 'OK', onPress: exitApp }]
+  //     );
+  //   } else {
+  //     setTimeMismatch(true); // Show lock screen on iOS instead of trying to exit
+  //   }
+  // } else {
+  //   setTimeMismatch(false); // Remove lock screen if time matches
+  // }
 };
 
 export const exitApp = () => {

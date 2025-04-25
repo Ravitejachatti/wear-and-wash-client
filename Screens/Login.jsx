@@ -1,172 +1,237 @@
-import React, { useContext, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity } from 'react-native';
-import { Formik } from 'formik';
-import * as Yup from 'yup';
-import { theme } from '../theme';
+import React, { useState, useContext, useEffect } from 'react';
+import { View, Text, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { AuthContext } from '../Components/Config/AuthContext';
+import auth from '@react-native-firebase/auth';
 import { useDispatch } from 'react-redux';
 import { postLogin } from '../Redux/Auth/action';
-import { getUserBookingSlot } from '../Redux/App/action';
-import { getFutureUserBookings } from '../utils/futureBookingUtils';
-
-import { addData } from '../Storage/addData';
-import { getData } from '../Storage/getData';
-import { countUserFutureBookings } from '../utils/bookingUtils';
-import { AuthContext } from '../Components/Config/AuthContext';
-
-
-const validationSchema = Yup.object().shape({
-  email: Yup.string().email('Invalid email').required('Email is required'),
-  password: Yup.string().min(6, 'Password too short').required('Password is required'),
-});
-
+import axios from "axios";
+import {Api} from '../Api/Api'
 const Login = () => {
-  const [loading, setLoading] = useState(false); // Loading state
+  const [phone, setPhone] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [verificationId, setVerificationId] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [futureBookings,setFutureBookings] = useState(0)
-  const { login } = useContext(AuthContext); // Use AuthContext
+  const [resendTimer, setResendTimer] = useState(60);
+  const [canResend, setCanResend] = useState(false);
+
   const navigation = useNavigation();
   const dispatch = useDispatch();
- 
-  
+  const { login, isAuthenticated } = useContext(AuthContext);
 
+  const handleSendOTP = async () => {
+    try {
+      setLoading(true);
+      const res =  await axios.post(`${Api}/api/user/check-phone`, { phone:phone });
 
-  const handleSubmit = (values) => {
-    dispatch(postLogin(values))
-      .then(async (res) => {
-        if (res?.payload?.response?.data?.message) {
-          setErrorMessage(res?.payload?.response?.data?.message);
-        }
-
-        if (res?.payload?.message === 'login success') {
-          try {
-            await login(res.payload);
-          } catch (error) {
-            // console.log('Error storing user data:', error);
-          }
-        }
-      })
-      .catch((err) => {
-        // console.log("Login error:", err);
-      });
+      if (!res.data.exists) {
+        setErrorMessage('Phone number is not registered.');
+        setLoading(false);
+        return;
+      }
+      const confirmation = await auth().signInWithPhoneNumber(phone);
+      setVerificationId(confirmation.verificationId);
+      setOtpSent(true);
+      setErrorMessage('');
+      setResendTimer(60);
+      setCanResend(false);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      setErrorMessage('Failed to send OTP. Please try again.');
+    }
   };
 
+  const handleResendOTP = async () => {
+    if (!canResend) return;
+
+    try {
+      setLoading(true);
+      const confirmation = await auth().signInWithPhoneNumber(phone);
+      setVerificationId(confirmation.verificationId);
+      setErrorMessage('OTP resent successfully.');
+      setResendTimer(60);
+      setCanResend(false);
+      setLoading(false);
+    } catch (error) {
+      setLoading(false);
+      setErrorMessage('Failed to resend OTP.');
+    }
+  };
+
+  const handleVerifyOTP = async () => {
+    try {
+      setLoading(true);
+      const credential = auth.PhoneAuthProvider.credential(verificationId, otp);
+
+      await auth().signInWithCredential(credential);
+
+      console.log('otp verified')
+
+      const response = await dispatch(postLogin({ phone }));
+      if (response?.payload?.message == "Login successful") {
+        login(response.payload.user);
+        console.log(isAuthenticated, "isAuthenticated")
+      } else {
+        setErrorMessage("User not registered or backend error.");
+      }
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
+      setErrorMessage('OTP verification failed.');
+    }
+  };
+
+  useEffect(() => {
+    let timer;
+
+    if (otpSent && resendTimer > 0) {
+      timer = setInterval(() => {
+        setResendTimer((prev) => {
+          if (prev <= 1) {
+            setCanResend(true);
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(timer);
+  }, [otpSent, resendTimer]);
+
+  useEffect(() => {
+    const unsubscribe = auth().onAuthStateChanged(async (user) => {
+      if (user && otpSent) {
+        console.log('Auto-login detected via Firebase:', user.phoneNumber);
+        try {
+          const response = await dispatch(postLogin({ phone: user.phoneNumber }));
+          if (response?.payload?.message === 'Login successful') {
+            console.log(response.payload.user)
+            login(response.payload.user);
+            // navigation.reset({
+            //   index: 0,
+            //   routes: [{ name: 'Main', params: { screen: 'Location' } }],
+            // });
+          } else {
+            setErrorMessage("User not registered or backend error.");
+          }
+        } catch (err) {
+          console.error('Auto-verification login error:', err);
+          setErrorMessage('Something went wrong during automatic login.');
+        }
+      }
+    });
+  
+    return () => unsubscribe();
+  }, [otpSent]);
+
   return (
-    <Formik
-      initialValues={{ email: '', password: '' }}
-      validationSchema={validationSchema}
-      onSubmit={handleSubmit}
-    >
-      {({ values, handleChange, handleBlur, handleSubmit, errors, touched }) => (
-        <View style={styles.container}>
-          <Text style={styles.title}>Welcome Back!</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Login with Phone</Text>
+      {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-          {errorMessage ? <Text style={styles.errorMessage}>{errorMessage}</Text> : null}
-
-          <TextInput
-            keyboardType='email-address'
-            style={styles.input}
-            value={values.email}
-            onChangeText={handleChange('email')}
-            onBlur={handleBlur('email')}
-            placeholder='Email'
-            placeholderTextColor='#aaa'
-          />
-          {touched.email && errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-
+      {!otpSent ? (
+        <>
           <TextInput
             style={styles.input}
-            value={values.password}
-            onChangeText={handleChange('password')}
-            onBlur={handleBlur('password')}
-            placeholder='Password'
-            placeholderTextColor='#aaa'
-            secureTextEntry
+            placeholder="Enter Phone Number"
+            keyboardType="phone-pad"
+            value={phone}
+            onChangeText={(text) => {
+              const formatted = text.startsWith('+') ? text : '+91' + text.replace(/\D/g, '');
+              setPhone(formatted);
+            }}
           />
-          {touched.password && errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-
-          <TouchableOpacity onPress={handleSubmit} style={styles.loginButton}>
-            <Text style={styles.loginButtonText}>Login</Text>
+          <TouchableOpacity onPress={handleSendOTP} style={styles.button}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Send OTP</Text>}
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter OTP"
+            keyboardType="numeric"
+            value={otp}
+            onChangeText={setOtp}
+          />
+          <TouchableOpacity onPress={handleVerifyOTP} style={styles.button}>
+            {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Verify & Login</Text>}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={() => navigation.navigate('Register')}>
-            <Text style={styles.registerLink}>
-              Don't have an account? <Text style={{ color: theme.color.primary }}>SignUp</Text>
+          <TouchableOpacity
+            onPress={handleResendOTP}
+            disabled={!canResend}
+            style={[styles.resendBtn, !canResend && styles.resendDisabled]}
+          >
+            <Text style={styles.resendText}>
+              {canResend ? 'Resend OTP' : `Resend in ${resendTimer}s`}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('ForgetPasswordScreen')}>
-            <Text style={styles.registerLink}>
-              <Text style={{ color: theme.color.primary }}>Forget Password</Text>
-            </Text>
-          </TouchableOpacity>
-
-        </View>
+        </>
       )}
-    </Formik>
+
+      <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+        <Text style={styles.link}>Don't have an account? <Text style={{ color: 'blue' }}>Register</Text></Text>
+      </TouchableOpacity>
+    </View>
   );
 };
+
+export default Login;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 20,
-    backgroundColor: '#f5f5f5',
+    padding: 24,
   },
   title: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 40,
-    color: theme.color.primary,
+    marginBottom: 32,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    padding: 15,
+    borderColor: '#ccc',
+    padding: 14,
     borderRadius: 10,
-    backgroundColor: '#fff',
     fontSize: 16,
     marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+  },
+  button: {
+    backgroundColor: '#1e90ff',
+    padding: 14,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  link: {
+    marginTop: 20,
+    textAlign: 'center',
+    color: '#333',
   },
   errorText: {
     color: 'red',
-    fontSize: 14,
     marginBottom: 10,
-  },
-  errorMessage: {
     textAlign: 'center',
-    color: 'red',
-    marginBottom: 20,
   },
-  loginButton: {
-    backgroundColor: theme.color.secondary,
-    padding: 15,
-    borderRadius: 10,
+  resendBtn: {
+    marginTop: 15,
+    padding: 12,
     alignItems: 'center',
-    marginVertical: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 5,
+    borderRadius: 6,
   },
-  loginButtonText: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: 'bold',
+  resendText: {
+    color: '#1e90ff',
+    fontSize: 15,
   },
-  registerLink: {
-    textAlign: 'center',
-    color: 'gray',
-    marginTop: 30,
-    fontSize: 16,
+  resendDisabled: {
+    opacity: 0.5,
   },
 });
-
-export default Login;

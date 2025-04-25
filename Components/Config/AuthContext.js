@@ -25,17 +25,22 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const login = async (userData) => {
+    console.log(userData)
+    console.log(userData.token)
+    console.log(userData.location)
    
     try {
       await addData("userLocation", userData.location);
       await addData("gender", userData.gender)
-      await addData("userId", userData.id);
+      await addData("userId", userData._id);
       await addData("email", userData.email);
       await addData("phone", userData.phone);
       await addData("name", userData.name);
       await addData("token", userData.token);
       await addData("userRole", userData.role);
       setIsAuthenticated(true);
+      console.log("User logged in successfully:", userData);
+      
     } catch (error) {
       // console.log('Error during login:', error);
     }

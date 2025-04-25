@@ -39,9 +39,8 @@ export const getUserBookingSlot = (id) => (dispatch) => {
   dispatch({ type: types.GET_USER_BOOK_SLOT_REQUEST });
 
   return axios
-    .get(`${Api}/api/bookings/${id}`, {})
+    .get(`${Api}/api/bookings/user/${id}`, {})
     .then((res) => {
-      // console.log("dispatch response ",res.payload)
       return dispatch({
         type: types.GET_USER_BOOK_SLOT_SUCCESS,
         payload: res.data.data,
