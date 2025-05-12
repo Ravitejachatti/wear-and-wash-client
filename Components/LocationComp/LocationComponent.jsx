@@ -14,6 +14,7 @@ import { getUserBookingsForCurrentMonth } from "../../utils/futureBookingUtils"
 import moment from "moment-timezone";
 import Testing from "../../Screens/Testing";
 const screenWidth = Dimensions.get("window").width;
+import { handleInstantBooking as bookNow } from "../../utils/intantBooking";
 
 const LocationComponent = () => {
   
@@ -69,6 +70,8 @@ const LocationComponent = () => {
 
     // ...more time slots as needed
   ];
+
+
 
   // Fetch current date and set initial state
   useEffect(() => {
@@ -283,6 +286,19 @@ const LocationComponent = () => {
     return <ActivityIndicator size="large" color="#1E90FF" />;
   }
 
+  const handleInstantBooking = () => {
+    bookNow({
+      isSlotAvailable,
+      machines,
+      filterMachinesByTimeSlot,
+      setSelectedMachineId,
+      setSelectedTimeSlot,
+      setSelectedDate,
+      setShowPayment,
+      filterLocation
+    });
+  };
+
 
   return (
     <View style={styles.main}>
@@ -329,6 +345,13 @@ const LocationComponent = () => {
         <Text style={styles.proceedBtnText}>
           {futureBookingsCount > 0 || currentMonthBooking >= 4 ? "Booking Unavailable" : "Proceed"}
         </Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        style={[styles.proceedBtn, { backgroundColor: "#28a745" }]} // Green color
+        onPress={handleInstantBooking}
+      >
+        <Text style={styles.proceedBtnText}>Book Instant Slot</Text>
       </TouchableOpacity>
       {/* Animated PaymentComp */}
       <AnimatedPaymentComp

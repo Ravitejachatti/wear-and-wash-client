@@ -40,7 +40,8 @@ const Login = () => {
       setLoading(false);
     } catch (error) {
       setLoading(false);
-      setErrorMessage('Failed to send OTP. Please try again.');
+      console.log(error)
+      setErrorMessage('Failed to send OTP. Please try again.',error);
     }
   };
 

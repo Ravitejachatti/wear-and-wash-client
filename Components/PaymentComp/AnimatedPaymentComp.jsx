@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Animated, View, StyleSheet } from 'react-native';
+import { Animated, View, StyleSheet, Modal } from 'react-native';
 import PaymentComp from './PaymentComp';
 import { getData } from '../../Storage/getData';
 
@@ -38,7 +38,6 @@ const AnimatedPaymentComp = ({ isVisible, onClose }) => {
     };
 
     if (isVisible) {
-      // Fetch data and show the component
       fetchUserSelectedDetails();
       Animated.timing(slideAnim, {
         toValue: 0, // Slide up to become visible
@@ -46,7 +45,6 @@ const AnimatedPaymentComp = ({ isVisible, onClose }) => {
         useNativeDriver: true,
       }).start();
     } else {
-      // Hide the component
       Animated.timing(slideAnim, {
         toValue: 1000, // Slide down to hide
         duration: 500,
@@ -56,37 +54,47 @@ const AnimatedPaymentComp = ({ isVisible, onClose }) => {
   }, [isVisible, slideAnim]);
 
   return (
-    <Animated.View
-      style={[
-        styles.animatedContainer,
-        { transform: [{ translateY: slideAnim }] },
-      ]}
+    <Modal
+      animationType="fade"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={onClose}
     >
-      <View style={styles.innerContainer}>
-        <PaymentComp paymentData={paymentData} onVisibilityChange={onClose} />
+      <View style={styles.overlay}>
+        <Animated.View
+          style={[
+            styles.animatedContainer,
+            { transform: [{ translateY: slideAnim }] },
+          ]}
+        >
+          <View style={styles.innerContainer}>
+            <PaymentComp paymentData={paymentData} onVisibilityChange={onClose} />
+          </View>
+        </Animated.View>
       </View>
-    </Animated.View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  animatedContainer: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)', // Semi-transparent black background
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 999,
   },
-  innerContainer: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 0,
-    overflow: 'hidden',
+  animatedContainer: {
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 10,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10, 
   },
+
 });
 
 export default AnimatedPaymentComp;
