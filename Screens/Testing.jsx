@@ -57,6 +57,9 @@ const Testing = ({ onDateChange }) => {
           
           borderColor: '#ccc',
           padding: 10,
+          fontSize: 16, 
+          fontWeight: "600",
+          color: "#333"
           
           
         }}

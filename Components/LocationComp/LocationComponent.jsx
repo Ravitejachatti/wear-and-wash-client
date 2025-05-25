@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { View, StyleSheet, TextInput, TouchableOpacity, FlatList, Platform, ActivityIndicator, Alert, Text, Dimensions } from "react-native";
 import DateTimePicker from '@react-native-community/datetimepicker';
-import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';  // Importing icons
+// import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';  // Importing icons
+import { FontAwesome5, MaterialCommunityIcons } from 'react-native-vector-icons';
+
 import { useDispatch, useSelector } from "react-redux";
 import { getBasedOnLocation, getUserBookingSlot } from "../../Redux/App/action";
 import { getData } from "../../Storage/getData";
@@ -15,6 +17,9 @@ import moment from "moment-timezone";
 import Testing from "../../Screens/Testing";
 const screenWidth = Dimensions.get("window").width;
 import { handleInstantBooking as bookNow } from "../../utils/intantBooking";
+import checkSlotAvailability from "../../utils/checkAvailability";
+import { removeItem } from "../../Storage/removeItem";
+
 
 const LocationComponent = () => {
   
@@ -37,7 +42,16 @@ const LocationComponent = () => {
   const [selectedMachineId, setSelectedMachineId] = useState(null);
   const [selectedMachineName, setSelectedMachineName] = useState(null);
   const [userLocation, setUserLocation] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(moment(new Date()).tz('Asia/Kolkata').format('YYYY-MM-DD'));
+  const [selectedDate, setSelectedDate] = useState();
+  const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [filteredMachines, setFilteredMachines] = useState([]);
+const [machineLoading, setMachineLoading] = useState(false);
+const [machineAvailability, setMachineAvailability] = useState({});
+const [availabilityLoading, setAvailabilityLoading] = useState(false);
+const [instantBookingLoading, setInstantBookingLoading] = useState(false);
+
+
+
 
   const timeSlots = [
     
@@ -90,6 +104,7 @@ const LocationComponent = () => {
       // Set the formatted date
       const formatted = currentDateObj.toISOString().split('T')[0];
       setFormattedDate(formatted);
+      setSelectedDate(formatted); // ✅ Fix: set selectedDate to today
       setLoading(false);  // Set loading to false after the date is fetched
     };
 
@@ -98,6 +113,7 @@ const LocationComponent = () => {
 
   // Ensure that we only try to filter slots after the current date is set
   useEffect(() => {
+    console.log("Selected date changed:", selectedDate);
     if (selectedDate) {
       filterAvailableSlots();
     }
@@ -135,7 +151,7 @@ const LocationComponent = () => {
   
     const now = moment.tz(new Date(), "Asia/Kolkata"); // current time in IST
     const selectedDateMoment = moment.tz(selectedDate, "YYYY-MM-DD", "Asia/Kolkata");
-    console.log(selectedDate)
+    //console.log(selectedDate)
   
     const isToday = now.isSame(selectedDateMoment, 'day');
   
@@ -151,7 +167,7 @@ const LocationComponent = () => {
 
   // const onChange = (event, selectedDate) => {
   //   const currentDate = selectedDate || date;
-  //   // console.log("selected date ",currentDate)
+  //   // //console.log("selected date ",currentDate)
   //   setShow(Platform.OS === 'ios');
   //   setDate(currentDate);
 
@@ -168,7 +184,7 @@ const LocationComponent = () => {
 
   // Fetch user location, user ID, and future bookings
   useEffect(() => {
-    // // console.log("useffect 2")
+    // // //console.log("useffect 2")
     const fetchData = async () => {
       setLoading(true);
       try {
@@ -184,17 +200,17 @@ const LocationComponent = () => {
         const response = await dispatch(getUserBookingSlot(JSON.parse(userId)));
 
         const bookings = response.payload;
-        // // // console.log("bookings test ",bookings)
-          // // console.log("testing")
+        // // // //console.log("bookings test ",bookings)
+          // // //console.log("testing")
         const userBookings = await countUserFutureBookings(bookings, JSON.parse(userId));
         setFutureBookingsCount(userBookings.length);
         
 
         const CurrentMonth = getUserBookingsForCurrentMonth(bookings, userId); 
         setCurrentMonthBooking(CurrentMonth.length);
-        // // console.log("testing")
+        // // //console.log("testing")
 
-        // console.log("edge Cases ",userBookings,CurrentMonth)
+        // //console.log("edge Cases ",userBookings,CurrentMonth)
 
         if (userBookings.length > 0) {
           Alert.alert('You have upcoming bookings!');
@@ -209,24 +225,30 @@ const LocationComponent = () => {
     fetchData();
   }, []);
 
-  const filterMachinesByTimeSlot = (machine) => {
-    if (!selectedTimeSlot || !formattedDate) return true;
+  
+const parseTimeToDate = (timeStr) => {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  const date = new Date();
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+};
 
-    const [selectedStartTime, selectedEndTime] = selectedTimeSlot.split("-");
-    const selectedDate = date.toISOString().split('T')[0];
+const filterMachinesByTimeSlot = async (machine) => {
+  if (!selectedTimeSlot || !selectedDate) return true;
 
-    const isAvailable = machine.bookedSlots.every((slot) => {
-      const slotDate = new Date(slot.date).toISOString().split('T')[0];
-      const [slotStartTime, slotEndTime] = [slot.timeRange.startTime, slot.timeRange.endTime];
+  const [startTime, endTime] = selectedTimeSlot.split("-");
 
-      if (slotDate === selectedDate) {
-        return (selectedEndTime <= slotStartTime) || (selectedStartTime >= slotEndTime);
-      }
-      return true;
-    });
+  setCheckingAvailability(true); // Start loading
+  const available = await checkSlotAvailability(
+    machine._id,
+    selectedDate,
+    startTime,
+    endTime
+  );
+  setCheckingAvailability(false); // Stop loading
 
-    return isAvailable;
-  };
+  return available;
+};
 
 
   const handleProceed = async () => {
@@ -248,47 +270,108 @@ const LocationComponent = () => {
     }
   };
 
-  const handleClosePayment = () => {
-    setShowPayment(false); // Close the payment component
-  };
+ const handleClosePayment = async () => {
+  setShowPayment(false);
+
+  // Cleanup only if it was instant booking
+  await removeItem("machineId");
+  await removeItem("machineName");
+  await removeItem("date");
+  await removeItem("timeSlot");
+  await removeItem("locationId");
+
+  setSelectedMachineId(null);
+  setSelectedMachineName(null);
+  setSelectedTimeSlot(null);
+  setSelectedDate(formattedDate);
+};
+
 
   
-  const handleCenterChange = (value) => { 
-    setSelectedTimeSlot(value);
+const handleCenterChange = (value) => {
+  setSelectedTimeSlot(value);
+  setSelectedMachineId(null);  // Clear selected machine
+  setSelectedMachineName(null); // Optional: Clear machine name too
+};
+
+useEffect(() => {
+  const updateAvailability = async () => {
+    if (!selectedTimeSlot || !selectedDate || machines.length === 0) return;
+
+    setAvailabilityLoading(true);
+    const [startTime, endTime] = selectedTimeSlot.split("-");
+
+    const availabilityMap = {};
+    await Promise.all(
+      machines.map(async (machine) => {
+        const isAvailable = await checkSlotAvailability(machine._id, selectedDate, startTime, endTime);
+        availabilityMap[machine._id] = isAvailable;
+      })
+    );
+
+    setMachineAvailability(availabilityMap);
+    setAvailabilityLoading(false);
   };
+
+  updateAvailability();
+}, [selectedTimeSlot, selectedDate, machines]);
+
+
 
   const store = useSelector((state) => state.app.centers);
   const filterLocation = userLocation && Array.isArray(store)
     ? store.filter((item) => item.name.toLowerCase() === userLocation.toLowerCase())
     : [];
   const machines = filterLocation.length > 0 ? filterLocation[0].machineId : [];
+  //console.log("machines ",filterLocation)
 
-  const renderMachineItem = ({ item }) => (
+
+
+const renderMachineItem = ({ item }) => {
+  const isSelected = item._id === selectedMachineId?._id;
+  const isAvailable = machineAvailability[item._id];
+
+  let iconColor = "skyblue"; // Default gray
+  // // if (isSelected) iconColor = "#6c757d"; // Dark gray when selected
+  // // else if (isAvailable === true) iconColor = "skyblue"; // Blue when available
+  // if (isAvailable === false) iconColor = "#dc3545"; // Red when unavailable
+
+  return (
     <TouchableOpacity
+
       onPress={() => {
-        setSelectedMachineId(item);
-        setSelectedMachineName(item.name);
+        if (isAvailable) {
+                  setSelectedMachineId(item);
+                  setSelectedMachineName(item.name);
+                } else {
+                  Alert.alert("Unavailable", "This machine is not available for the selected slot.");
+                }
       }}
-      style={[
-        styles.machineItem,
-        {
-          backgroundColor: item._id === selectedMachineId?._id ? "gray" : (item.status ? "#1E90FF" : "red"),
-        },
+            style={[
+        styles.machineItemMinimal,
+        isSelected ? { borderColor: "skyblue", borderWidth: 2 }: { borderColor: "transparent", borderWidth: 0 },
+        isAvailable === false ? { backgroundColor: "#f8d7da" } : { backgroundColor: "#f5f5f5" }
       ]}
     >
-      <FontAwesome5 name="soap" size={30} color="#fff" />
-      <Text style={styles.machineName}>{item.name}</Text>
-      <Text style={styles.machineStatus}>{item.status ? "Available" : "Unavailable"}</Text>
+    <View style={{ alignItems: 'center',}}>
+      <MaterialCommunityIcons name="washing-machine" size={80} color={iconColor} />
+      <Text style={styles.machineNameMinimal}>{item.name}</Text>
+    </View>
+
     </TouchableOpacity>
   );
+};
+
 
   if (loading) {
     return <ActivityIndicator size="large" color="#1E90FF" />;
   }
-
-  const handleInstantBooking = () => {
-    bookNow({
+const handleInstantBooking = async () => {
+  try {
+    setInstantBookingLoading(true); // Start loading
+    await bookNow({
       isSlotAvailable,
+      selectedMachineId,
       machines,
       filterMachinesByTimeSlot,
       setSelectedMachineId,
@@ -297,7 +380,14 @@ const LocationComponent = () => {
       setShowPayment,
       filterLocation
     });
-  };
+  } catch (error) {
+    Alert.alert("Error", "Something went wrong while booking.");
+    console.error(error);
+  } finally {
+    setInstantBookingLoading(false); // Stop loading
+  }
+};
+
 
 
   return (
@@ -316,10 +406,23 @@ const LocationComponent = () => {
             }}
             items={availableSlots}
             style={{
-              inputIOS: styles.input,
-              inputAndroid: styles.input,
-              placeholder: styles.placeholder,
+            inputIOS: {
+                ...styles.input,
+                fontWeight: '600',
+                color: '#333',
+              },
+              inputAndroid: {
+                ...styles.input,
+                fontWeight: '600',
+                color: '#333',
+              },
+              placeholder: {
+                ...styles.placeholder,
+                fontWeight: '500',
+                color: '#888',
+              },
               iconContainer: styles.iconContainer,
+           
             }}
           />
         </View>
@@ -327,15 +430,18 @@ const LocationComponent = () => {
        
       </View>
 
-      <View style={styles.listContainer}>
-        <FlatList
-          data={machines.filter(filterMachinesByTimeSlot)}
-          renderItem={renderMachineItem}
-          keyExtractor={(item) => item._id}
-          numColumns={3}
-          showsHorizontalScrollIndicator={false}
-        />
-      </View>
+{availabilityLoading ? (
+  <ActivityIndicator size="large" color="#1E90FF" />
+) : (
+  <FlatList
+    data={machines}
+    renderItem={renderMachineItem}
+    keyExtractor={(item) => item._id}
+    numColumns={3}
+    showsHorizontalScrollIndicator={false}
+     contentContainerStyle={{ paddingBottom: 20 }}
+  />
+)}
 
       <TouchableOpacity
         style={[styles.proceedBtn, futureBookingsCount > 0 ||  currentMonthBooking >= 4 ? styles.disabledBtn : null]} // Disable styling
@@ -346,13 +452,20 @@ const LocationComponent = () => {
           {futureBookingsCount > 0 || currentMonthBooking >= 4 ? "Booking Unavailable" : "Proceed"}
         </Text>
       </TouchableOpacity>
+<TouchableOpacity
+  style={[styles.proceedBtn, { backgroundColor: "#ff9800" }]} // Orange
+  onPress={handleInstantBooking}
+  disabled={instantBookingLoading}
+>
+  {instantBookingLoading ? (
+    <ActivityIndicator size="small" color="#fff" />
+  ) : (
+    <Text style={[styles.proceedBtnText, { color: "#fff" }]}>
+      Book Instant Slot
+    </Text>
+  )}
+</TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.proceedBtn, { backgroundColor: "#28a745" }]} // Green color
-        onPress={handleInstantBooking}
-      >
-        <Text style={styles.proceedBtnText}>Book Instant Slot</Text>
-      </TouchableOpacity>
       {/* Animated PaymentComp */}
       <AnimatedPaymentComp
         isVisible={showPayment}
@@ -372,6 +485,7 @@ const LocationComponent = () => {
 
 const styles = StyleSheet.create({
   main:{
+
   alignItems:"center",
   justifyContent:"center"
   },
@@ -387,12 +501,13 @@ const styles = StyleSheet.create({
     borderColor: "#d3d3d3",
     marginBottom: 20,
   },
-  input: {
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    fontSize: 16,
-    color: "#333",
-  },
+input: {
+  paddingVertical: 12,
+  paddingHorizontal: 10,
+  fontSize: 16,
+  color: "#333",
+  fontWeight: "600", // added boldness
+},
   placeholder: {
     color: "#999",
   },
@@ -445,7 +560,7 @@ const styles = StyleSheet.create({
   },
   proceedBtn: {
     width:"75%",
-    backgroundColor: "#007bff", // Green button when active
+    backgroundColor: "skyblue", // Green button when active
     paddingVertical: 15,
     borderRadius: 12,
     alignItems: "center",
@@ -466,7 +581,34 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textTransform: "uppercase",
   },
+
+machineNameMinimal: {
+  fontSize: 13,
+  fontWeight: "600",
+  textAlign: "center",
+  color: "gray",
+},
+machineItemMinimal: {
+  width: screenWidth / 3 - 20, // 3 per row with margin
+  aspectRatio: 1, // makes it a square box
+  padding: 5,
+  height: screenWidth / 3 - 20, // Maintain square aspect ratio
+  margin: 5,
+  alignItems: "center",
+  justifyContent: "center",
+  backgroundColor: "#f5f5f5",
+  borderRadius: 12,
+  shadowColor: "#000",
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  elevation: 3,
+},
+
+
+
 });
 
 
 export default LocationComponent;
+
