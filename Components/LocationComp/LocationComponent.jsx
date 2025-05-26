@@ -19,6 +19,7 @@ const screenWidth = Dimensions.get("window").width;
 import { handleInstantBooking as bookNow } from "../../utils/intantBooking";
 import checkSlotAvailability from "../../utils/checkAvailability";
 import { removeItem } from "../../Storage/removeItem";
+import FullScreenLoader from "../../utils/fullscreenLoading";
 
 
 const LocationComponent = () => {
@@ -49,6 +50,7 @@ const [machineLoading, setMachineLoading] = useState(false);
 const [machineAvailability, setMachineAvailability] = useState({});
 const [availabilityLoading, setAvailabilityLoading] = useState(false);
 const [instantBookingLoading, setInstantBookingLoading] = useState(false);
+const [busy, setBusy] = useState(false);
 
 
 
@@ -165,20 +167,7 @@ const [instantBookingLoading, setInstantBookingLoading] = useState(false);
     return true; // All slots allowed for future dates
   };
 
-  // const onChange = (event, selectedDate) => {
-  //   const currentDate = selectedDate || date;
-  //   // //console.log("selected date ",currentDate)
-  //   setShow(Platform.OS === 'ios');
-  //   setDate(currentDate);
 
-  //   // Manually format the date as YYYY-MM-DD in local time
-  // const year = currentDate.getFullYear();
-  // const month = String(currentDate.getMonth() + 1).padStart(2, '0'); // Add 1 to month as it's zero-based
-  // const day = String(currentDate.getDate()).padStart(2, '0');
-
-  // const formatted = `${year}-${month}-${day}`;
-  // setFormattedDate(formatted)
-  // };
 
  
 
@@ -252,7 +241,9 @@ const filterMachinesByTimeSlot = async (machine) => {
 
 
   const handleProceed = async () => {
+
     if (selectedMachineId && selectedTimeSlot && formattedDate) {
+       setBusy(true);
       try {
         await addData("machineId", selectedMachineId?._id);
         await addData("machineName", selectedMachineId?.name);
@@ -264,9 +255,11 @@ const filterMachinesByTimeSlot = async (machine) => {
         setShowPayment(true);
       } catch (error) {
         alert("Error storing data. Please try again.");
+        setBusy(false);
       }
     } else {
       alert("Please select both a machine and a time slot.");
+      setBusy(false);
     }
   };
 
@@ -368,7 +361,9 @@ const renderMachineItem = ({ item }) => {
   }
 const handleInstantBooking = async () => {
   try {
-    setInstantBookingLoading(true); // Start loading
+    // setInstantBookingLoading(true); // Start loading
+    setBusy(true);
+    console.log("Selected Date:", selectedDate);
     await bookNow({
       isSlotAvailable,
       selectedMachineId,
@@ -382,9 +377,11 @@ const handleInstantBooking = async () => {
     });
   } catch (error) {
     Alert.alert("Error", "Something went wrong while booking.");
+    handleClosePayment() // Close the payment screen if there's an error
     console.error(error);
   } finally {
     setInstantBookingLoading(false); // Stop loading
+    setBusy(false);
   }
 };
 
@@ -392,6 +389,7 @@ const handleInstantBooking = async () => {
 
   return (
     <View style={styles.main}>
+       {busy && <FullScreenLoader />}
      <View style={styles.dateInputWrapper}>
      <Testing onDateChange={setSelectedDate} />
          

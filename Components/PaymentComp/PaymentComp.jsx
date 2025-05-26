@@ -88,6 +88,7 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
       handleSubmit(amount, payment);
     } catch (error) {
       alert("Payment Failed. Please try again.");
+      handleClose(); // Close the payment modal
     } finally {
       setIsLoading(false);
     }
