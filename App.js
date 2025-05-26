@@ -194,6 +194,7 @@ import ResetPassword from "./Screens/ResetPassword";
 import { getData } from "./Storage/getData";
 import Testing from "./Screens/Testing";
 import { checkDateTimeWithServer, handleAppStateChangeWithServerCheck } from './utils/timeChecking';
+import { enforceAppCompliance } from "./utils/appCompliance";
 
 const Stack = createStackNavigator(); 
 const Drawer = createDrawerNavigator();
@@ -315,12 +316,11 @@ export default function App() {
   const [timeMismatch, setTimeMismatch] = useState(false);
 
   useEffect(() => {
-    checkDateTimeWithServer(setTimeMismatch);
-    const cleanupAppStateListener = handleAppStateChangeWithServerCheck(setTimeMismatch);
-
-    return () => {
-      cleanupAppStateListener();
-    };
+    let cleanupTime = () => {};
+    (async () => {
+      cleanupTime = await enforceAppCompliance(setTimeMismatch);
+    })();
+    return () => cleanupTime();
   }, []);
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ActivityIndicator, Alert  } from 'react-native';
 import { useDispatch } from 'react-redux';
 import { bookingSlot, getBasedOnLocation, getUserBookingSlot } from '../../Redux/App/action';
 import { useNavigation } from '@react-navigation/native';
@@ -7,6 +7,8 @@ import RazorpayCheckout from 'react-native-razorpay';
 import axios from "axios";
 import { getData } from '../../Storage/getData';
 import { Api } from "../../Api/Api";
+import {POST_BOOK_SLOT_FAILURE, POST_BOOK_SLOT_REQUEST, POST_BOOK_SLOT_SUCCESS} from "../../Redux/App/actionTypes"
+import FullScreenLoader from '../../utils/fullscreenLoading';
 
 const PaymentComp = ({ paymentData, onVisibilityChange }) => {
   const { date, timeSlot, machineName, userId, centerId, machineId } = paymentData;
@@ -68,7 +70,8 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
         description: "Slot Booking Payment",
         image: "https://your-logo-url.com/logo.png",
         currency: "INR",
-        key: "rzp_live_YrCTwtuhYHlVgm",
+        // key: "rzp_live_YrCTwtuhYHlVgm",
+        key: "rzp_test_Zl7MbXdxwUGMIF",
         amount: amount * 100,
         name: "WearnWash",
         order_id: data.order.id,
@@ -81,7 +84,7 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
       };
 
       const payment = await RazorpayCheckout.open(options);
-      alert("Payment Successful!");
+     
       handleSubmit(amount, payment);
     } catch (error) {
       alert("Payment Failed. Please try again.");
@@ -91,26 +94,41 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
   };
 
   const handleSubmit = async (amountPaid, payment) => {
+    console.log("paymentData", payment);
     setIsLoading(true);
     try {
-      const payload = { userId, centerId, machineId, timeSlot, date, amountPaid, payment };
-      const response = await dispatch(bookingSlot(payload));
+      // Closing the payment modal
+      handleClose();
+      const paymentId = payment.razorpay_payment_id;
+      const payload = { userId, centerId, machineId, timeSlot, date, amountPaid, paymentId };
+       const action = await dispatch(bookingSlot(payload));
       dispatch(getBasedOnLocation());
       dispatch(getUserBookingSlot(userId));
 
-      if (response?.payload?.length > 0 && response.payload[0].status === 'confirmed') {
-        alert('Booking Successful!');
-        navigation.replace('Main', { screen: 'Home' });
-      } else {
-        if (onVisibilityChange) {
-          onVisibilityChange(false);
-        }
-      }
-    } catch (error) {
-      alert('Booking failed. Please try again.');
-    } finally {
-      setIsLoading(false);
+
+       // if it was a success action...
+    if (action.type === POST_BOOK_SLOT_SUCCESS) {
+      // action.payload is `res.data.data` from your API
+      console.log('Booking succeeded:', action.payload);
+      Alert.alert('Booking Successful!');
+      navigation.replace('Main', { screen: 'Home' });
+    } else {
+      // otherwise, it's a failure action
+      console.error('Booking failed:', action.payload || action.error);
+      const message =
+        action.payload?.message ||
+        action.error?.message ||
+        'Unknown error, please try again.';
+      Alert.alert('Booking Failed', message);
     }
+
+  } catch (err) {
+    // this only catches unexpected runtime errors in your thunk or component
+    console.error('Unexpected error in handleSubmit:', err);
+    Alert.alert('Booking Failed', err.message || 'Something went wrong.');
+  } finally {
+    setIsLoading(false);
+  }
   };
 
   const handleClose = () => {

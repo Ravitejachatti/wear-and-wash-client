@@ -78,7 +78,7 @@ const [instantBookingLoading, setInstantBookingLoading] = useState(false);
       { label: "20:00 - 21:00", value: "20:00-21:00" },
       { label: "21:00 - 22:00", value: "21:00-22:00" },
       { label: "22:00 - 23:00", value: "22:00-23:00" },
-      { label: "23:00 - 00:00", value: "23:00-00:00" }
+      { label: "23:00 - 24:00", value: "23:00-24:00" }
   
   
 

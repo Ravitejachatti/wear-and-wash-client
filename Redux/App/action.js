@@ -31,7 +31,7 @@ export const bookingSlot = (payload) => (dispatch) => {
       });
     })
     .catch((err) => {
-      return dispatch({ type: types.POST_LOCATION_FAILURE, payload: err });
+      return dispatch({ type: types.POST_LOCATION_FAILURE, payload: err.response?.data || err.message });
     });
 };
 
