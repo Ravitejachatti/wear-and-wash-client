@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Text, View, Button, StyleSheet, TouchableOpacity, Alert, BackHandler, AppState } from 'react-native';
 import { Api } from '../../Api/Api';
 import { fetchCurrentDate } from '../../utils/getCurrentTime';
+import HomeComp from '../HomeComp/HomeComp';
 
 const MachineStart = ({ value }) => {
   const [isButtonEnabled, setIsButtonEnabled] = useState(false); // State to manage button enable/disable
@@ -55,8 +56,12 @@ const MachineStart = ({ value }) => {
     const fiveMinutesLater = new Date(startDateTime);
     fiveMinutesLater.setMinutes(fiveMinutesLater.getMinutes() + 5);
 
+    // create Date object for 10 minuts after the start time
+    const tenMinutesLater = new Date(startDateTime)
+    tenMinutesLater.setMinutes(tenMinutesLater.getMinutes() + 10)
+
     // Enable the button if the current time is between start time and 5 minutes later
-    if (currentTime >= startDateTime && currentTime <= fiveMinutesLater) {
+    if (currentTime >= startDateTime && currentTime <= tenMinutesLater) {
       setIsButtonEnabled(true); // Enable the button
     } else {
       setIsButtonEnabled(false); // Disable the button

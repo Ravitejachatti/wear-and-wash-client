@@ -10,7 +10,7 @@ import { Api } from "../../Api/Api";
 import {POST_BOOK_SLOT_FAILURE, POST_BOOK_SLOT_REQUEST, POST_BOOK_SLOT_SUCCESS} from "../../Redux/App/actionTypes"
 import FullScreenLoader from '../../utils/fullscreenLoading';
 
-const PaymentComp = ({ paymentData, onVisibilityChange }) => {
+const PaymentComp = ({ paymentData, onVisibilityChange, setBusy }) => {
   const { date, timeSlot, machineName, userId, centerId, machineId } = paymentData;
   const dispatch = useDispatch();
   const navigation = useNavigation();
@@ -88,6 +88,7 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
       handleSubmit(amount, payment);
     } catch (error) {
       alert("Payment Failed. Please try again.");
+      setBusy(false); 
       handleClose(); // Close the payment modal
     } finally {
       setIsLoading(false);
@@ -111,11 +112,12 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
     if (action.type === POST_BOOK_SLOT_SUCCESS) {
       // action.payload is `res.data.data` from your API
       console.log('Booking succeeded:', action.payload);
-      Alert.alert('Booking Successful!');
+      Alert.alert('Booking Successful! start washing withing 10 minutes of your booking start time');
       navigation.replace('Main', { screen: 'Home' });
     } else {
       // otherwise, it's a failure action
       console.error('Booking failed:', action.payload || action.error);
+      setBusy(false); 
       const message =
         action.payload?.message ||
         action.error?.message ||
@@ -127,6 +129,7 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
     // this only catches unexpected runtime errors in your thunk or component
     console.error('Unexpected error in handleSubmit:', err);
     Alert.alert('Booking Failed', err.message || 'Something went wrong.');
+    setBusy(false); 
   } finally {
     setIsLoading(false);
   }
@@ -136,6 +139,7 @@ const PaymentComp = ({ paymentData, onVisibilityChange }) => {
     if (onVisibilityChange) {
       onVisibilityChange(false);
     }
+    setBusy(false); // Reset busy state
   };
 
   return (

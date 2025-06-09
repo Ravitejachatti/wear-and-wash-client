@@ -109,6 +109,10 @@ const HomeComp = () => {
                             <Text style={styles.bookingText}>
                                 <Text style={styles.label}>Time Slot:</Text> {item.timeSlot.startTime} - {item.timeSlot.endTime}
                             </Text>
+                                    
+                                <Text style={styles.Notetext}>
+                                    Start the machine withing 10 minutes of your booking start time
+                                        </Text>
                         </View>
 
                     ))
@@ -123,7 +127,7 @@ const HomeComp = () => {
 
            
       
-           
+   
 
             <MachineStart value={filteredBookings}/>
 
@@ -207,7 +211,12 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
     },
- 
+    Notetext:{
+        color: 'red',
+        fontSize: 12,
+        fontWeight: '600',
+        marginTop: 10
+    }
  
     
 });

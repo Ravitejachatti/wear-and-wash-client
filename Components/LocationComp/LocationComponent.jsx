@@ -253,6 +253,7 @@ const filterMachinesByTimeSlot = async (machine) => {
 
         
         setShowPayment(true);
+        
       } catch (error) {
         alert("Error storing data. Please try again.");
         setBusy(false);
@@ -277,6 +278,7 @@ const filterMachinesByTimeSlot = async (machine) => {
   setSelectedMachineName(null);
   setSelectedTimeSlot(null);
   setSelectedDate(formattedDate);
+  setBusy(false);
 };
 
 
@@ -468,6 +470,7 @@ const handleInstantBooking = async () => {
       <AnimatedPaymentComp
         isVisible={showPayment}
         onClose={handleClosePayment} // Close the payment screen
+        setBusy = {setBusy}
       />
     </View>
   );

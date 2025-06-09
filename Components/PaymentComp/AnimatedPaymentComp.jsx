@@ -3,7 +3,7 @@ import { Animated, View, StyleSheet, Modal } from 'react-native';
 import PaymentComp from './PaymentComp';
 import { getData } from '../../Storage/getData';
 
-const AnimatedPaymentComp = ({ isVisible, onClose }) => {
+const AnimatedPaymentComp = ({ isVisible, onClose, setBusy }) => {
   const slideAnim = useRef(new Animated.Value(1000)).current; // Initial off-screen position
   const [paymentData, setPaymentData] = useState({
     date: null,
@@ -68,7 +68,7 @@ const AnimatedPaymentComp = ({ isVisible, onClose }) => {
           ]}
         >
           <View style={styles.innerContainer}>
-            <PaymentComp paymentData={paymentData} onVisibilityChange={onClose} />
+            <PaymentComp paymentData={paymentData} onVisibilityChange={onClose} setBusy = {setBusy} />
           </View>
         </Animated.View>
       </View>
