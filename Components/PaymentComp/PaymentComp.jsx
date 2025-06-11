@@ -12,6 +12,7 @@ import FullScreenLoader from '../../utils/fullscreenLoading';
 
 const PaymentComp = ({ paymentData, onVisibilityChange, setBusy }) => {
   const { date, timeSlot, machineName, userId, centerId, machineId } = paymentData;
+  const [showFullScreenLoader, setShowFullScreenLoader] = useState(false);
   const dispatch = useDispatch();
   const navigation = useNavigation();
   const [isLoading, setIsLoading] = useState(false);
@@ -70,8 +71,8 @@ const PaymentComp = ({ paymentData, onVisibilityChange, setBusy }) => {
         description: "Slot Booking Payment",
         image: "https://your-logo-url.com/logo.png",
         currency: "INR",
-        key: "rzp_live_YrCTwtuhYHlVgm",
-        // key: "rzp_test_Zl7MbXdxwUGMIF",
+        // key: "rzp_live_YrCTwtuhYHlVgm",
+        key: "rzp_test_Zl7MbXdxwUGMIF",
         amount: amount * 100,
         name: "WearnWash",
         order_id: data.order.id,
@@ -85,7 +86,8 @@ const PaymentComp = ({ paymentData, onVisibilityChange, setBusy }) => {
 
       const payment = await RazorpayCheckout.open(options);
      
-      handleSubmit(amount, payment);
+          // setShowFullScreenLoader(true); // Show loader after payment
+      await handleSubmit(amount, payment);
     } catch (error) {
       alert("Payment Failed. Please try again.");
       setBusy(false); 
@@ -95,45 +97,39 @@ const PaymentComp = ({ paymentData, onVisibilityChange, setBusy }) => {
     }
   };
 
-  const handleSubmit = async (amountPaid, payment) => {
-    console.log("paymentData", payment);
-    setIsLoading(true);
-    try {
-      // Closing the payment modal
-      handleClose();
-      const paymentId = payment.razorpay_payment_id;
-      const payload = { userId, centerId, machineId, timeSlot, date, amountPaid, paymentId };
-       const action = await dispatch(bookingSlot(payload));
-      dispatch(getBasedOnLocation());
-      dispatch(getUserBookingSlot(userId));
+ const handleSubmit = async (amountPaid, payment) => {
+  setIsLoading(true); // Start showing loader
+  try {
+    const paymentId = payment.razorpay_payment_id;
+    const payload = { userId, centerId, machineId, timeSlot, date, amountPaid, paymentId };
+    const action = await dispatch(bookingSlot(payload));
+    dispatch(getBasedOnLocation());
+    dispatch(getUserBookingSlot(userId));
 
-
-       // if it was a success action...
     if (action.type === POST_BOOK_SLOT_SUCCESS) {
-      // action.payload is `res.data.data` from your API
-      console.log('Booking succeeded:', action.payload);
-      Alert.alert('Booking Successful! start washing withing 10 minutes of your booking start time');
+      Alert.alert(
+        "✅ Booking Successful!",
+        "Start washing within 10 minutes of your booking start time"
+      );
+      handleClose(); // ✅ Now close after success
       navigation.replace('Main', { screen: 'Home' });
     } else {
-      // otherwise, it's a failure action
-      console.error('Booking failed:', action.payload || action.error);
-      setBusy(false); 
       const message =
         action.payload?.message ||
         action.error?.message ||
         'Unknown error, please try again.';
-      Alert.alert('Booking Failed', message);
+      Alert.alert("❌ Booking Failed", message);
+      handleClose(); // ✅ Also close after failure
     }
-
   } catch (err) {
-    // this only catches unexpected runtime errors in your thunk or component
     console.error('Unexpected error in handleSubmit:', err);
     Alert.alert('Booking Failed', err.message || 'Something went wrong.');
-    setBusy(false); 
+    handleClose();
   } finally {
-    setIsLoading(false);
+    setIsLoading(false); // Stop showing loader
+    // setShowFullScreenLoader(false); // Hide loader after booking
   }
-  };
+};
 
   const handleClose = () => {
     if (onVisibilityChange) {
@@ -144,6 +140,7 @@ const PaymentComp = ({ paymentData, onVisibilityChange, setBusy }) => {
 
   return (
     <View style={styles.wrapper}>
+      {showFullScreenLoader && <FullScreenLoader />}
       <Text style={styles.mainHeading}>Booking Data</Text>
       <View style={styles.container}>
         {date && <Text style={styles.text}>Date: {date}</Text>}
